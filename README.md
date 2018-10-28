@@ -23,5 +23,5 @@ done
  - D2 - SDA
  - power sensor with 3v from board
 
-### Sleep cycles
+### Movement indicates sleep cycles
 ![Alt text](./sleep-activity1.svg)
