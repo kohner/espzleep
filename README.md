@@ -1,8 +1,9 @@
 # ESP8266-server-GY-521-MPU-6050
 ### Fetch data from linux machine
-```console
-while true; do
-curl esp.ip.here >> out.csv
+```bash
+while true
+do
+    curl esp.ip.here >> out.csv
 done
 ```
 More info in [esp-init.bash](#init-script), this is some example CSV output
