@@ -44,13 +44,6 @@ More info in [esp-init.bash](#init-script), this is some example CSV output
 
 ![Alt text](./temp-sample1.svg)
 
-### Device setup
- 
-![Alt text](./esp-with-sensor.jpg)
- - D1 - SCL
- - D2 - SDA
- - power sensor with 3v from board
-
 ### Movement indicates sleep cycles
 ![Alt text](./sleep-activity1.svg)
 
