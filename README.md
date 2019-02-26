@@ -9,13 +9,20 @@
 
 ## Complete Instructions
 We assume you are starting from scratch; only in posession of items mentioned in the BoM.
+
 #### 1. Preparation
 If your sensor comes with seperate header pins it is recommended to solder them onto the chip (the ESP usually ships with preattached header pins). If you are just getting started with soldering you can find guidance on this task here: https://www.instructables.com/Solder-Arduino-Header-Pins-Easily/
-#### 2. Assembly and wiring
-- Stick the sensor and the ESP onto the breadboard similar to how it is shown in the picture.
+
+#### 2. Assembly and Wiring
+- Stick the sensor and the ESP onto the breadboard similar to how it is shown in the first image
+- Attach the wires according to the scheme presented in the second image
+
+##### Breadboard Setup
 ![Alt text](./esp-with-sensor.jpg)
-- Attach the wires according to this scheme:
+
+##### Wiring Scheme
 ![Alt text](./ESP8266-wiring.png)
+
 #### 3. Preparing the ESP
 Setup Arduino IDE with ESP8266 on your computer. You need to do this in order to compile and upload the code onto the ESP. Follow advice from these sites if you don't know how to do this:
 - https://www.arduino.cc/en/Guide
