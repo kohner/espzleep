@@ -28,30 +28,12 @@ Setup Arduino IDE with ESP8266 on your computer. You need to do this in order to
 - https://www.arduino.cc/en/Guide
 - https://www.instructables.com/Setting-Up-the-Arduino-IDE-to-Program-ESP8266
 
-When your Arduino IDE is ready to upload to ESP8266 copy and paste the code from esp.ino into Arduino IDE and make  hit upload. Make sure you choose the appropriate board and USB port.
+When your Arduino IDE is ready to upload to ESP8266 copy and paste the code from esp.ino into Arduino IDE and edit ssid, password and ip address (insert the ip address of the machine running the Streams-HTTP-Gateway) before hitting upload. Make sure you choose the appropriate board and USB port.
 
-### 4. Start Streams-http-gateway
+### 4. Start Streams-HTTP-gateway
 Install the Streams-HTTP-gateway available on https://github.com/iot2tangle/Streams-http-gateway
-Start the server and your should
 
-### Fetch data from linux machine
-```bash
-while true
-do
-    curl esp.ip.here >> out.csv
-done
-```
-More info in [esp-init.bash](#init-script), this is some example CSV output
-```console
--1.6870, -1.6183, -0.4351, 29.0947, 2059
--1.7175, -1.4122, -0.5496, 29.0476, 2059
--1.8625, -1.7099, -0.5725, 29.1417, 2060
--1.4580, -1.6106, -0.5496, 29.0947, 2060
-```
-
-![Alt text](./sample1.svg)
-
-![Alt text](./temp-sample1.svg)
+Start the server and you should see requests coming in after a few seconds.
 
 ### Movement indicates sleep cycles
 ![Alt text](./sleep-activity1.svg)
