@@ -28,9 +28,11 @@ Setup Arduino IDE with ESP8266 on your computer. You need to do this in order to
 - https://www.arduino.cc/en/Guide
 - https://www.instructables.com/Setting-Up-the-Arduino-IDE-to-Program-ESP8266
 
-When your Arduino IDE is ready to upload to ESP8266 copy and paste the code from esp.ino into Arduino IDE and hit upload. Make sure you choose the appropriate board and USB port.
+When your Arduino IDE is ready to upload to ESP8266 copy and paste the code from esp.ino into Arduino IDE and make  hit upload. Make sure you choose the appropriate board and USB port.
 
-[todo]
+### 4. Start Streams-http-gateway
+Install the Streams-HTTP-gateway available on https://github.com/iot2tangle/Streams-http-gateway
+Start the server and your should
 
 ### Fetch data from linux machine
 ```bash
