@@ -38,6 +38,7 @@ When your Arduino IDE is ready to upload to ESP8266 copy and paste the code from
 
 #### 4. Start Streams-HTTP-gateway
 Install the Streams-HTTP-gateway available on https://github.com/iot2tangle/Streams-http-gateway
+It is necessary that you follow the instructions given on the Github page ie. install Rust, build dependencies etc. then run ```cargo run --release``` inside the project directory.
 
 Start the server and you should see requests coming in after a few seconds.
 
