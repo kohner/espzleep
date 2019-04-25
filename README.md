@@ -21,7 +21,7 @@ If your sensor comes with seperate header pins it is recommended to solder them 
 
 #### 2. Assembly and Wiring
 - Stick the sensor and the ESP onto the breadboard similar to how it is shown in the first image
-- Attach the wires according to the scheme presented in the second image
+- Attach the wires according to the scheme shown in the second image
 
 ##### Breadboard Setup:
 ![Alt text](./esp-with-sensor.jpg)
@@ -38,6 +38,7 @@ When your Arduino IDE is ready to upload to ESP8266 copy and paste the code from
 
 #### 4. Start Streams-HTTP-gateway
 Install the Streams-HTTP-gateway available on https://github.com/iot2tangle/Streams-http-gateway
+
 It is necessary that you follow the instructions given on the Github page ie. install Rust, build dependencies etc. then run ```cargo run --release``` inside the project directory.
 
 Start the server and you should see requests coming in after a few seconds.
