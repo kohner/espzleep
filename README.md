@@ -5,9 +5,10 @@ In this project movement data is collected using a Gyrometer Sensor during sleep
 ## Bill of Materials / Things You'll Need
 - ESP8266 (microcontroller)
 - GY-521 MPU-6050 (accelerometer / gyroscope sensor)
-- breadboard and wires
-- power supply or powerbank for independant operation
-- soldering iron for preparation of the sensor module
+- Breadboard and wires
+- Power supply or powerbank for independant operation
+- USB / micro USB cable
+- Soldering iron for preparation of the sensor module
 
 - **Sostware:**
   - Arduino IDE: https://www.arduino.cc/en/software
