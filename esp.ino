@@ -1,30 +1,40 @@
-#include <ESP8266WiFi.h>
-#include <WiFiClient.h>
-#include <NTPClient.h>
-#include <WiFiUdp.h>
-#include <ESP8266HTTPClient.h>
+#include <Wire.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "Wire.h"
+#include <ESP8266WiFi.h>
+#include <WiFiClient.h>
+#include <ESP8266WebServer.h>
+#include <WiFiUdp.h>
+#include <NTPClient.h>
 
 #define NTP_OFFSET   60 * 60      // In seconds
 #define NTP_INTERVAL 60 * 1000    // In miliseconds
 #define NTP_ADDRESS  "europe.pool.ntp.org"
 
 
-// Network Communication Vars / Prototypes
+// Network
 
 
-const char* ssid = "****"; // edit
-const char* password = "****"; // edit
-
-const char* host = "0.0.0.0"; // edit
-const int httpPort = 8080; // (optional)
-
-String craftRequestContent();
+const char* ssid = "YOUR SSID";
+const char* password = "YOUR PASSWORD";
+ESP8266WebServer server(80);
 
 
-// Sensor Vars / Prototypes
+// Communication
+
+
+// Those constants control in which ways the sensor-data is sent
+const bool wifi = true; // Host a website where sensor-data is displayed
+const bool serial = true; // Does not affect debug output via serial communication
+
+// The time delay controls how long the ESP waits before sending another reply
+// or posting data via USB. You may decrease this value to receive more data
+// and achieve more sensible movment detection. Increasing it will reduce the traffic
+// and CPU usage. 1000 = 1 second
+const int timeDelay = 900;
+
+
+// Sensor
 
 
 struct rawdata {
@@ -252,17 +262,26 @@ scaleddata convertRawToScaled(byte addr, rawdata data_in, bool Debug) {
 }
 
 
-// Networking Functions
+// Networking Functions and other
 
-// craftRequestContent: This function wraps data from the MPU sensor in IOT2Tangle JSON format
-// which can be sent to HTTP-Streams-Gateway inside an HTTP paket
-String craftRequestContent() {
+
+// handleRoot: Prepare the website content and send responses
+void handleRoot() {
+  String content;
+  
+  content = makeString();
+  server.send(200, "text/plain", content);
+}
+
+// makeString: This function formats data from the MPU sensor
+// so it can be hosted on the website or sent via USB connection
+String makeString() {
   scaleddata values;
   rawdata next_sample;
   scaleddata gyroValues;
-  
-  setMPU6050scales(MPU_addr, 0b00000000, 0b00010000);
 
+  // Get gyro-data from MUP
+  setMPU6050scales(MPU_addr, 0b00000000, 0b00010000);
   next_sample = mpu6050Read(MPU_addr, false);
   gyroValues = convertRawToScaled(MPU_addr, next_sample, false);
 
@@ -270,8 +289,10 @@ String craftRequestContent() {
   timeClient.update();
   unsigned long timestamp = timeClient.getEpochTime();
 
-  // IOT2TANGLE JSON format, include gyro parameters
-  String content = "{ \"iot2tangle\": [ { \"sensor\": \"Gyroscope\", \"data\": [ { \"x\": \"" + String(gyroValues.GyX) + "\" }, { \"y\": \"" + String(gyroValues.GyY) + "\" }, { \"z\": \"" + String(gyroValues.GyZ) + "\" } ] }, { \"sensor\": \"Acoustic\", \"data\": [ { \"mp\": \"1\" } ] } ], \"device\": \"DEVICE_ID_1\", \"timestamp\": " + String(timestamp) + " }";
+  // Make a string
+  // legacy version: String content = "x: " + String(gyroValues.GyX) + "; y: " + String(gyroValues.GyY) + "; z: " + String(gyroValues.GyZ) + " t: " + String(timestamp);
+  // new version (CSV-format):
+  String content = String(timestamp) + "," + String(gyroValues.GyX) + "," + String(gyroValues.GyY) + "," + String(gyroValues.GyZ);
 
   return content;
 }
@@ -283,8 +304,10 @@ String craftRequestContent() {
 // setup: The setup includes initializations of networking and hardware interfaces
 void setup(void) {
 
-  // Initialize serial monitor and I2C communication with MPU
+  // Initialize serial communication
   Serial.begin(115200);
+
+  // Initialize I2C communication with MPU
   Wire.begin();
   mpu6050Begin(MPU_addr);
 
@@ -292,6 +315,10 @@ void setup(void) {
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   Serial.println("");
+
+  if (wifi) {
+
+    Serial.print("WiFi enabled. Connecting ...");
 
   // Wait for connection
   while (WiFi.status() != WL_CONNECTED) {
@@ -303,39 +330,41 @@ void setup(void) {
   Serial.println(ssid);
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
+
+  // Server
+  server.begin();
+  Serial.println("HTTP server started");
+  server.on("/", handleRoot);
+      
+  } else {
+    Serial.println("WiFi disabled.");
+    }
 }
 
 
 // Loop
 
 
-// loop: The loop repeatedly sends data from MPU gyrometer to HTTP-Streams-Gateway from IOT2TANGLE
+// loop: The loop instructs the server to handle requests from clients
+// and send data via serial communication
 void loop(void) {
-    
-  // Connect to IOT2TANGLE Streams-HTTP-Gateway
-  WiFiClient client;
-  if (!client.connect(host, httpPort)) {
-    Serial.println("Connection failed");
-    return;
+  String data;
+
+  data = makeString();
+  delay(timeDelay);
+  
+  // Wireless Communication
+  // The data on the website has to be fetched by another machine in the same network.
+  // The ESP webserver is only responsible for responding the any replies it receives.
+  // For ex. you can use curl http://192.168.255.255/
+  if (wifi) {
+    server.handleClient();
   }
 
-  // Craft and send request
-  String content = craftRequestContent();
-  String request = "POST /sensor_data HTTP/1.1\nHost: " + String(host) + ":" + httpPort + "\nAccept: */*\nContent-Type: application/json\nContent-Length: " + String(content.length()) + "\n\n" + content;
-  Serial.println("Requesting POST: ");
-  Serial.println(request);
-  client.println(request);
-  
-  // Example Request from Github page
-//  String data = "{ \"iot2tangle\": [ { \"sensor\": \"Gyroscope\", \"data\": [ { \"x\": \"4514\" }, { \"y\": \"244\" }, { \"z\": \"-1830\" } ] }, { \"sensor\": \"Acoustic\", \"data\": [ { \"mp\": \"1\" } ] } ], \"device\": \"DEVICE_ID_1\", \"timestamp\": 1558511111 }";
-//  Serial.println("Requesting POST: ");
-//  String request = "POST /sensor_data HTTP/1.1\nHost: " + String(host) + ":8080\nAccept: */*\nContent-Type: application/json\nContent-Length: " + String(data.length()) + "\n\n" + String(data);
-//  client.println(request);
-//  Serial.println(request);
-  
-  delay(3000); // Streams-HTTP-Gateway is not fast enough for 'real-time' updates
-  if (client.connected()) {
+  // Serial Communication
+  // Data from serial communication can be read from a linux machine
+  // by running for ex. sudo tail -f /dev/ttyUSB0
+  if (serial) {
+    Serial.println(data);
   }
-  Serial.println();
-  Serial.println("Closing connection");
 }
