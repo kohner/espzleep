@@ -3,35 +3,80 @@
 #include <stdlib.h>
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
-#include <ESP8266WebServer.h>
-#include <WiFiUdp.h>
-#include <NTPClient.h>
-
-#define NTP_OFFSET   60 * 60      // In seconds
-#define NTP_INTERVAL 60 * 1000    // In miliseconds
-#define NTP_ADDRESS  "europe.pool.ntp.org"
+#include <ESP8266HTTPClient.h>
+#include "arduino_secrets.h"
 
 
-// Network
+// Network / Communication
 
 
-const char* ssid = "YOUR SSID";
-const char* password = "YOUR PASSWORD";
-ESP8266WebServer server(80);
+// The ESP will send the data via Serial Connection
+// additionally it can be sent via WiFi / HTTP to a server.
+
+// Define your SSID and password in the seperate file arduino_secrets.h
+const char* ssid = SECRET_SSID;
+const char* password = SECRET_PASS;
+const char* host = "192.168.12.1";
+const int httpPort = 80;
+HTTPClient http;
+const bool wifi = false; // enable or disable wifi communication
+void sendIt();
 
 
-// Communication
+// Configuration
 
 
-// Those constants control in which ways the sensor-data is sent
-const bool wifi = true; // Host a website where sensor-data is displayed
-const bool serial = true; // Does not affect debug output via serial communication
+// The interval controls how much time the ESP spends collecting data
+// before sending it to the server. Initial value is 60000 (1 minute).
+// Maximum is 72 minutes (see 'millis() rollover, I hope my calculation is correct').
+// When debugging you probably want to set this lower...
+// Keep in mind that lowering this value may cause problems when running
+// for a longer period of time as the memory on the ESP is very limited.
+const int interval = 200;
 
-// The time delay controls how long the ESP waits before sending another reply
-// or posting data via USB. You may decrease this value to receive more data
-// and achieve more sensible movment detection. Increasing it will reduce the traffic
-// and CPU usage. 1000 = 1 second
-const int timeDelay = 900;
+// Values above the threshold will be appended to the data vector.
+// All other data will be discarded.
+// This limits the amount of memory taken up by the date avector.
+// Additionally during sleep most of the time values are below a certain value
+// and are of no interest so the threshold comes without loss of quality in
+// sleep analysis when set correctly.
+// To find out the optimal threshold value just set it to zero and make a test run...
+const float thresholdGyro = 25;
+//const float thresholdAccel = 0.1;
+const float thresholdAccel = 0;
+
+
+// Button
+
+
+// Pin where button is connected
+// D0 is predefined - when you print it on Serial Monitor it has the value 16
+const int buttonPin = D0;
+
+
+// Loop Variables
+
+
+// All data collected will be stored in this vector.
+// Each tuples holds the maximum values of the
+// Gyro- and Accelerometer sensor for a specific time span.
+std::vector<std::tuple<int, float, float>> dataVector{};
+
+// Additional variables for the loop
+std::tuple<int, float, float> maxValues;
+int startTime;
+bool btn;
+int buttonState;
+float maxGyroX = 0;
+float maxGyroY = 0;
+float maxGyroZ = 0;
+float minGyroX = 9;
+float minGyroY = 9;
+float minGyroZ = 9;
+float maxAccel = 0;
+float maxDiffGyro;
+void refreshValues();
+int skippedVals = 0;
 
 
 // Sensor
@@ -76,13 +121,6 @@ rawdata mpu6050Read(byte addr, bool Debug);
 scaleddata convertRawToScaled(byte addr, rawdata data_in, bool Debug);
 
 
-// Start time service
-
-
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", 3600, 60000);
-
-
 // MPU Sensor Functions
 
 
@@ -100,7 +138,7 @@ void mpu6050Begin(byte addr) {
 }
 
 // checkI2c: We are using the return value of the Write.endTransmisstion
-// to see if a device did acknowledge to the address.
+// to see if a device acknowledged to the address.
 bool checkI2c(byte addr) {
   Serial.println(" ");
   Wire.beginTransmission(addr);
@@ -127,13 +165,13 @@ rawdata mpu6050Read(byte addr, bool Debug) {
   Wire.write(0x3B); // starting with register 0x3B (ACCEL_XOUT_H)
   Wire.endTransmission(false);
   Wire.requestFrom(addr, 14); // request a total of 14 registers
-  values.AcX = Wire.read() << 8 | Wire.read(); // 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)
-  values.AcY = Wire.read() << 8 | Wire.read(); // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
-  values.AcZ = Wire.read() << 8 | Wire.read(); // 0x3F (ACCEL_ZOUT_H) & 0x40 (ACCEL_ZOUT_L)
-  values.Tmp = Wire.read() << 8 | Wire.read(); // 0x41 (TEMP_OUT_H) & 0x42 (TEMP_OUT_L)
   values.GyX = Wire.read() << 8 | Wire.read(); // 0x43 (GYRO_XOUT_H) & 0x44 (GYRO_XOUT_L)
   values.GyY = Wire.read() << 8 | Wire.read(); // 0x45 (GYRO_YOUT_H) & 0x46 (GYRO_YOUT_L)
   values.GyZ = Wire.read() << 8 | Wire.read(); // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
+  values.Tmp = Wire.read() << 8 | Wire.read(); // 0x41 (TEMP_OUT_H) & 0x42 (TEMP_OUT_L)
+  values.AcX = Wire.read() << 8 | Wire.read(); // 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)
+  values.AcY = Wire.read() << 8 | Wire.read(); // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
+  values.AcZ = Wire.read() << 8 | Wire.read(); // 0x3F (ACCEL_ZOUT_H) & 0x40 (ACCEL_ZOUT_L)
 
   if (Debug) {
     Serial.print(" GyX = "); Serial.print(values.GyX);
@@ -262,39 +300,95 @@ scaleddata convertRawToScaled(byte addr, rawdata data_in, bool Debug) {
 }
 
 
-// Networking Functions and other
+// Networking Function / Communication
 
 
-// handleRoot: Prepare the website content and send responses
-void handleRoot() {
-  String content;
-  
-  content = makeString();
-  server.send(200, "text/plain", content);
+// sendIt: Send the data vector to the server (HTTP POST)
+void sendIt() {
+  String sendContent = "";
+  int ctr = 0;
+
+
+  // WiFi Connection
+
+
+
+  if (wifi) {
+    Serial.print("Connecting to WiFi network " + String(ssid) + " ");
+    
+    // Make WIFI client and request connection to network
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(ssid, password);
+    Serial.println("");
+
+    // Wait for connection
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+      Serial.print(".");
+    }
+    Serial.println("");
+    Serial.println("Connected.");
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+    Serial.println("Sending data: ");
+  }
+
+
+  // HTTP Connection / Requests
+
+
+
+  // Send in groups of 10 tuples
+  for (auto it = std::begin(dataVector); it != std::end(dataVector); ++it) {
+    ctr++;
+    sendContent = sendContent + String(std::get<0>(*it)) + "," + String(std::get<1>(*it)) + "," + String(std::get<2>(*it)) + ";";
+    if (ctr == 10) {
+      Serial.print(sendContent);
+      if (wifi) {
+        Serial.println();
+        Serial.print("Requesting POST: ");
+        http.begin(host, httpPort);
+        http.addHeader("Content-Type", "text/plain");
+        auto httpCode = http.POST(sendContent);
+        Serial.println(httpCode);
+      }
+      ctr = 0;
+      sendContent = "";
+    }
+  }
+
+  // Cleanup WiFi / HTTP
+  http.end();
+  WiFi.mode(WIFI_OFF);
 }
 
-// makeString: This function formats data from the MPU sensor
-// so it can be hosted on the website or sent via USB connection
-String makeString() {
-  scaleddata values;
-  rawdata next_sample;
-  scaleddata gyroValues;
 
-  // Get gyro-data from MUP
+// Data Collection
+
+
+// refreshData: Fetch values from MPU and find new maximum values
+void refreshValues() {
+  rawdata next_sample;
+  scaleddata values;
+
+  // Get data from MPU
   setMPU6050scales(MPU_addr, 0b00000000, 0b00010000);
   next_sample = mpu6050Read(MPU_addr, false);
-  gyroValues = convertRawToScaled(MPU_addr, next_sample, false);
+  values = convertRawToScaled(MPU_addr, next_sample, false);
 
-  // Generate Timestamp
-  timeClient.update();
-  unsigned long timestamp = timeClient.getEpochTime();
+  // Accelerometer: Get maximum acceleration
+  // Using fabsf because it is not import in which direction we move.
+  maxAccel = max(maxAccel, max(fabsf(values.AcZ), max(fabsf(values.AcY), fabsf(values.AcZ))));
 
-  // Make a string
-  // legacy version: String content = "x: " + String(gyroValues.GyX) + "; y: " + String(gyroValues.GyY) + "; z: " + String(gyroValues.GyZ) + " t: " + String(timestamp);
-  // new version (CSV-format):
-  String content = String(timestamp) + "," + String(gyroValues.GyX) + "," + String(gyroValues.GyY) + "," + String(gyroValues.GyZ);
-
-  return content;
+  // Gyroscope: Get maximum / minimum motion from difference between max and min
+  // But first we get min and max, calculating difference outside the loop
+  // as it would be unnecessary to do this here.
+  maxGyroX = max(maxGyroX, values.GyX);
+  maxGyroY = max(maxGyroY, values.GyY);
+  maxGyroZ = max(maxGyroZ, values.GyZ);
+  minGyroX = min(minGyroX, values.GyX);
+  minGyroY = min(minGyroY, values.GyY);
+  minGyroZ = min(minGyroZ, values.GyZ);
 }
 
 
@@ -303,7 +397,6 @@ String makeString() {
 
 // setup: The setup includes initializations of networking and hardware interfaces
 void setup(void) {
-
   // Initialize serial communication
   Serial.begin(115200);
 
@@ -311,60 +404,65 @@ void setup(void) {
   Wire.begin();
   mpu6050Begin(MPU_addr);
 
-  // Make WIFI client and request connection to network
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  Serial.println("");
+  // Initialize the button pin as an input
+  pinMode(buttonPin, INPUT);
 
-  if (wifi) {
-
-    Serial.print("WiFi enabled. Connecting ...");
-
-  // Wait for connection
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("");
-  Serial.print("Connected to ");
-  Serial.println(ssid);
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
-
-  // Server
-  server.begin();
-  Serial.println("HTTP server started");
-  server.on("/", handleRoot);
-      
-  } else {
-    Serial.println("WiFi disabled.");
-    }
+  // Set timer
+  startTime = millis();
 }
 
 
 // Loop
 
 
-// loop: The loop instructs the server to handle requests from clients
-// and send data via serial communication
+// After a set time span the maximum values it received during that time
+// will be appended to the data vector.
 void loop(void) {
-  String data;
+  delay(400);
 
-  data = makeString();
-  delay(timeDelay);
-  
-  // Wireless Communication
-  // The data on the website has to be fetched by another machine in the same network.
-  // The ESP webserver is only responsible for responding the any replies it receives.
-  // For ex. you can use curl http://192.168.255.255/
-  if (wifi) {
-    server.handleClient();
+  // Refresh maximum and minimum values
+  refreshValues();
+
+  // Check button status
+  // Start transmission of data if the button is pressed (HIGH)
+  buttonState = digitalRead(buttonPin);
+  if (buttonState == HIGH) {
+    // start data transmission of vector
+    sendIt();
   }
 
-  // Serial Communication
-  // Data from serial communication can be read from a linux machine
-  // by running for ex. sudo tail -f /dev/ttyUSB0
-  if (serial) {
-    Serial.println(data);
+  // If 'interval' time has elapsed
+  // - (calculate Gyro difference)
+  // - push the data pair to the vector
+  // - reset timer and vars
+  if (millis() - startTime > interval) {
+    // Gyroscope: Calculate the max difference
+    maxGyroX = maxGyroX - minGyroX;
+    maxGyroY = maxGyroY - minGyroY;
+    maxGyroZ = maxGyroZ - minGyroZ;
+    maxDiffGyro = max(max(maxGyroZ, maxGyroY), maxGyroX);
+    maxDiffGyro = 0;
+
+    if (maxAccel > thresholdAccel || maxDiffGyro > thresholdGyro) {
+      // Make tuple and append to data vector along with number of skipped values
+      dataVector.push_back(std::make_tuple(skippedVals, maxAccel, maxDiffGyro));
+      Serial.println("Treshold exceeded! append: " + String(skippedVals) + "," + String(maxAccel) + "," + String(maxDiffGyro));
+      skippedVals = 0;
+    } else {
+      Serial.println("discarding: " + String(maxAccel) + "," + String(maxDiffGyro));
+      skippedVals ++;
+    }
+
+    // Reset timer
+    startTime = millis();
+
+    // Reset vars
+    maxGyroX = 0;
+    maxGyroY = 0;
+    maxGyroZ = 0;
+    minGyroX = 9;
+    minGyroY = 9;
+    minGyroZ = 9;
+    maxAccel = 0;
   }
 }
