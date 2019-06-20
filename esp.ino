@@ -32,7 +32,7 @@ void sendIt();
 // When debugging you probably want to set this lower...
 // Keep in mind that lowering this value may cause problems when running
 // for a longer period of time as the memory on the ESP is very limited.
-const int interval = 200;
+const int interval = 60000;
 
 // Values above the threshold will be appended to the data vector.
 // All other data will be discarded.
@@ -42,8 +42,7 @@ const int interval = 200;
 // sleep analysis when set correctly.
 // To find out the optimal threshold value just set it to zero and make a test run...
 const float thresholdGyro = 25;
-//const float thresholdAccel = 0.1;
-const float thresholdAccel = 0;
+const float thresholdAccel = 0.1;
 
 
 // Button
