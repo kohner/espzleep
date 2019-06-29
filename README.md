@@ -30,7 +30,7 @@ If your sensor comes with seperate header pins I recommended you to solder them 
 - Attach the wires according to the scheme shown in the second image
 
 #### Breadboard Setup:
-![Alt text](./esp-with-sensor.jpg)
+![Alt text](./esp-with-sensor.jpeg)
 
 #### Wiring Scheme:
 ![Alt text](./ESP8266-wiring.png)
