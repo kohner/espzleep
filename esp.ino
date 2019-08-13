@@ -3,7 +3,8 @@
 #include <stdlib.h>
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
-#include <ESP8266HTTPClient.h>
+#include <ESP8266WebServer.h>
+#include <ESP8266mDNS.h>
 #include "arduino_secrets.h"
 
 
@@ -16,11 +17,6 @@
 // Define your SSID and password in the seperate file arduino_secrets.h
 const char* ssid = SECRET_SSID;
 const char* password = SECRET_PASS;
-const char* host = "192.168.12.1";
-const int httpPort = 80;
-HTTPClient http;
-const bool wifi = false; // enable or disable wifi communication
-void sendIt();
 
 
 // Configuration
@@ -299,69 +295,6 @@ scaleddata convertRawToScaled(byte addr, rawdata data_in, bool Debug) {
 }
 
 
-// Networking Function / Communication
-
-
-// sendIt: Send the data vector to the server (HTTP POST)
-void sendIt() {
-  String sendContent = "";
-  int ctr = 0;
-
-
-  // WiFi Connection
-
-
-
-  if (wifi) {
-    Serial.print("Connecting to WiFi network " + String(ssid) + " ");
-    
-    // Make WIFI client and request connection to network
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid, password);
-    Serial.println("");
-
-    // Wait for connection
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(500);
-      Serial.print(".");
-    }
-    Serial.println("");
-    Serial.println("Connected.");
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
-    Serial.println("Sending data: ");
-  }
-
-
-  // HTTP Connection / Requests
-
-
-
-  // Send in groups of 10 tuples
-  for (auto it = std::begin(dataVector); it != std::end(dataVector); ++it) {
-    ctr++;
-    sendContent = sendContent + String(std::get<0>(*it)) + "," + String(std::get<1>(*it)) + "," + String(std::get<2>(*it)) + ";";
-    if (ctr == 10) {
-      Serial.print(sendContent);
-      if (wifi) {
-        Serial.println();
-        Serial.print("Requesting POST: ");
-        http.begin(host, httpPort);
-        http.addHeader("Content-Type", "text/plain");
-        auto httpCode = http.POST(sendContent);
-        Serial.println(httpCode);
-      }
-      ctr = 0;
-      sendContent = "";
-    }
-  }
-
-  // Cleanup WiFi / HTTP
-  http.end();
-  WiFi.mode(WIFI_OFF);
-}
-
-
 // Data Collection
 
 
@@ -391,6 +324,35 @@ void refreshValues() {
 }
 
 
+// Networking / Server
+
+
+void handleRoot() {
+  String content;
+  int numOfElem;
+  int start;
+  std::tuple<int, float, float> element;
+  
+  if (server.args() = 2) {
+    if (server.hasArg("numOfElem") && server.hasArg("start")) {
+      numOfElem = server.arg("numOfElem");
+      start = server.arg("start");
+      for (int i = start; i != numOfElem, i++) {
+        element = dataVector.at(i);
+        content = content + String(std::get<0>(element)) + "," + String(std::get<1>(element)) + "," + String(std::get<2>(element)) + ",";
+      }
+      server.send(200, "text/plain", content);
+    }
+  } else {
+    server.send(200, "text/plain", "Interval: " + String(interval));
+    // When the client requests the interval we interpret this as a notification
+    // that all data has been received; therefore we just clear the data vector
+    // so esp can start collection data again.
+    dataVector.clear();
+  }
+}
+
+
 // Setup
 
 
@@ -417,19 +379,13 @@ void setup(void) {
 // After a set time span the maximum values it received during that time
 // will be appended to the data vector.
 void loop(void) {
-  delay(400);
+  delay(300);
 
+  
   // Refresh maximum and minimum values
   refreshValues();
 
-  // Check button status
-  // Start transmission of data if the button is pressed (HIGH)
-  buttonState = digitalRead(buttonPin);
-  if (buttonState == HIGH) {
-    // start data transmission of vector
-    sendIt();
-  }
-
+  
   // If 'interval' time has elapsed
   // - (calculate Gyro difference)
   // - push the data pair to the vector
@@ -463,5 +419,53 @@ void loop(void) {
     minGyroY = 9;
     minGyroZ = 9;
     maxAccel = 0;
+  }
+
+  
+  // Check button status
+  // Start server if the button is pressed (HIGH)
+  buttonState = digitalRead(buttonPin);
+  if (buttonState == HIGH) {
+    // WiFi connection
+    Serial.print("Connecting to WiFi network " + String(ssid) + " ");
+
+    // Make WiFi client and request connection to network
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(ssid, password);
+    Serial.println("");
+
+    // Wait for connection
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+      Serial.print(".");
+    }
+    Serial.println("");
+    Serial.println("Connected.");
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+    
+    // mDNS
+    // Start mDNS with name esp8266 -> addres esp8266.local
+    if (MDNS.begin("esp8266")) {
+      Serial.println("MDNS started");
+    }
+    
+    // Server
+    Serial.print("Starting server: ");
+    ESP8266WebServer server(80);
+    server.on("/", handleRoot);
+    server.begin();
+    Serial.println("Ready.");
+    
+    // Keep server running until button is pressed again
+    while (buttonState == LOW) {
+      server.handleClient();
+      MDNS.update();
+      buttonState = digitalRead(buttonPin);
+    }
+    // todo: confirm this works:
+    server.close();
+    server.stop();
+    WiFi.mode(WIFI_OFF);
   }
 }
