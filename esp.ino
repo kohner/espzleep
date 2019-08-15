@@ -18,6 +18,8 @@
 const char* ssid = SECRET_SSID;
 const char* password = SECRET_PASS;
 
+ESP8266WebServer server(80);
+
 
 // Configuration
 
@@ -330,14 +332,14 @@ void refreshValues() {
 void handleRoot() {
   String content;
   int numOfElem;
-  int start;
+  int vecStart;
   std::tuple<int, float, float> element;
   
-  if (server.args() = 2) {
+  if (server.args() == 2) {
     if (server.hasArg("numOfElem") && server.hasArg("start")) {
-      numOfElem = server.arg("numOfElem");
-      start = server.arg("start");
-      for (int i = start; i != numOfElem, i++) {
+      numOfElem = server.arg("numOfElem").toInt();
+      vecStart = server.arg("vecStart").toInt();
+      for (int i = vecStart; i != numOfElem; i++) {
         element = dataVector.at(i);
         content = content + String(std::get<0>(element)) + "," + String(std::get<1>(element)) + "," + String(std::get<2>(element)) + ",";
       }
@@ -452,7 +454,6 @@ void loop(void) {
     
     // Server
     Serial.print("Starting server: ");
-    ESP8266WebServer server(80);
     server.on("/", handleRoot);
     server.begin();
     Serial.println("Ready.");
