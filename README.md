@@ -10,8 +10,9 @@ For example: Long term data collection reveals sleep habits and can help you fin
 ## Bill of Materials / Things You'll Need
 - ESP8266 (microcontroller)
 - GY-521 MPU-6050 (accelerometer / gyroscope sensor)
+- Button and 10k resistor
 - Breadboard and wires
-- Power supply or powerbank for independant operation
+- Power supply (or powerbank for independant operation)
 - USB / micro USB cable
 - Soldering iron for preparation of the sensor module
 
