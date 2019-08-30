@@ -18,7 +18,7 @@ For example: Long term data collection reveals sleep habits and can help you fin
 
 - **Sostware:**
   - Arduino IDE: https://www.arduino.cc/en/software
-  - IOT2TANGLE Streams HTTP Gateway: https://github.com/iot2tangle/Streams-http-gateway
+  - Python3 dependencies: requests, matplotlib, numpy
 
 ## Complete Setup Instructions
 We assume you are starting from scratch; only in posession of items mentioned in the BoM.
@@ -44,13 +44,35 @@ Setup Arduino IDE with ESP8266 on your computer. You need to do this in order to
 Clone the repository and open esp.ino in the Arduino IDE. Change your SSID and password in the seperade arduino_secrets.h file. Maybe you want to adjust the configuration in the source code as well. When you are read hit upload.
 
 ### 4. Fetch the data
-The ESP will start gathering data and send it back via WiFi/HTTP (and serial connection) when you press the button. In order to work with the data you must have a server receive it. This will be provided in near future.
+The ESP will start gathering data as soon as it is connected to a power source. When you want to fetch the data from your compyter follow these steps:
+- Make sure your WiFi hotspot is running so the ESP can connect to it
+- Press the button; the builtin LED will start blinking and turn on permanently when the connection is established
+- You can run the retrieve_data.py script from your machine and it will save the sensor data from the ESP to a file
+- Press the button again at any time to close the connection
+
 
 ### 5. Analyze!
-Information about your sleep cycles can provide valuable insights. You can find out for example different parameters which influence your sleep quality or learn about your long-term sleep habits.
+Using the analyze_data.pyt script we can perform automated analysis of our sleep-data. The results will be displayed in a graph.
 
-## Movement / Gyro data indicates sleep cycles
-Data during sleep:
+From the sensor data we can get an approximate view on our sleepcycles.
+
 ![Alt text](./sleep-activity1.svg)
 Sample motion data:
 ![Alt text](./sample1.svg)
+
+## Retrieve and Analyze Scripts
+```script.py <filename>```
+
+Example usage:
+
+```retrieve_data.py mySleepToday```
+
+```analyse_data.py mySleepToday```
+### Dependencies
+retrieve_data.py
+- python-requests
+
+analyze_data.py
+- python-matplotlib
+- python-numpyt
+
