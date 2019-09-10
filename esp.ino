@@ -11,14 +11,14 @@
 // Network / Communication
 
 
-// The ESP will send the data via Serial Connection
-// additionally it can be sent via WiFi / HTTP to a server.
-
 // Define your SSID and password in the seperate file arduino_secrets.h
-const char* ssid = SECRET_SSID;
-const char* password = SECRET_PASS;
 
 ESP8266WebServer server(80);
+
+// Try to connect to fallback wifi when
+// we could not establish a connection
+// after this amount of time (miliseconds)
+int wifiConnectionTimeout = 20000;
 
 
 // Configuration
@@ -30,6 +30,7 @@ ESP8266WebServer server(80);
 // When debugging you probably want to set this lower...
 // Keep in mind that lowering this value may cause problems when running
 // for a longer period of time as the memory on the ESP is very limited.
+// (miliseconds)
 const int interval = 60000;
 
 // Values exceeding the threshold will be appended to the data vector.
@@ -60,6 +61,7 @@ std::vector<std::tuple<int, float, float, float, float>> dataVector{};
 
 // Additional variables for the loop
 int startTime;
+int btnStart;
 bool btn;
 float GyroX = 0;
 float GyroY = 0;
@@ -323,47 +325,157 @@ void refreshValues() {
 }
 
 
-// Networking / Server
+// Networking / Web Server
+
+
+int networkSetup(String ssid, String password) {
+
+
+  // Measure time since start of the function to obey timeout
+
+  int idleStart = millis();
+
+
+  /* WiFi connection */
+
+  Serial.println("\nConnecting to WiFi network " + String(ssid) + " ");
+
+
+  // Make WiFi client and request connection to network
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+
+
+  // Wait for connection
+
+  while (WiFi.status() != WL_CONNECTED) { // run <- status
+
+
+    // Blinking LED
+
+    delay(500);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(500);
+    digitalWrite(LED_BUILTIN, HIGH);
+    Serial.print(".");
+
+
+    // Check if we exceed the timeout
+
+    if (millis() - idleStart > wifiConnectionTimeout) {
+      return -1; // Timeout reached
+    }
+
+  }
+
+
+  // Connection successful
+
+  Serial.println("\nConnected.");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+
+
+  /* mDNS */
+
+  // Start mDNS with name esp8266 -> addres esp8266.local
+
+  if (MDNS.begin("esp8266")) {
+    Serial.println("MDNS started");
+  }
+
+
+  /* Server */
+
+  Serial.print("Starting server: ");
+  server.on("/", handleRoot);
+  server.begin();
+  Serial.println("Ready."); \
+
+
+  return 0;   // Network setup successful
+}
 
 
 void handleRoot() {
-  digitalWrite(LED_BUILTIN, HIGH);
-
   String content = "";
   int elements;
   int offset;
-  int vectorSize = dataVector.size();
   std::tuple<int, float, float, float, float> element;
 
+  /*
+     The client can specify the exact elements of the vector he receive.
+
+     He does so by defining parameters elements and offset.
+
+     This way he can retrieve the whole data vector.
+
+     When he is done he may want to send a request to / which will send the metainformation.
+
+  */
+
+
+
+  /* Request for Data*/
+
   if (server.args() == 2) {
+
+
+    // Parameters define which section of the vector has to be sent
+
     if (server.hasArg("elements") && server.hasArg("offset")) {
       elements = server.arg("elements").toInt();
       offset = server.arg("offset").toInt();
+
       Serial.println("Received request: offset " + String(offset) + ", elements " + String(elements));
+
+
+      // Forge the reply
+
       for (int i = offset; i < elements + offset; i++) {
-        if (i >= vectorSize) {
+
+
+        // We let the client know when he reaches the end so he can request the metainformation
+
+        if (i >= dataVector.size()) {
           Serial.print("Vector size exceeded, ");
           server.send(200, "text/plain", content + "stop");
           Serial.println("Sent rest of vector + stop signal to client: " + content);
           return;
         }
+
+
+        // Append data from vector
+
         element = dataVector.at(i);
         content = content + String(std::get<0>(element)) + "," + String(std::get<1>(element)) + "," + String(std::get<2>(element)) + "," + String(std::get<3>(element)) + "," + String(std::get<4>(element)) + ";";
         Serial.println("appended: " + String(std::get<0>(element)) + "," + String(std::get<1>(element)) + ";");
       }
     }
+
     server.send(200, "text/plain", content);
     Serial.println("Sent to client: " + content);
+
+
+
+  /* Request for Metainformation*/
+
   } else {
-    server.send(200, "text/plain", String(interval));
-    Serial.println("Sent to client:" + String(interval));
+
+
+    // Send interval and calculate how much time has elapsed
+    // since the button was pressed
+    content = String(interval) + "; " + String(btnStart);
+    server.send(200, "text/plain", content);
+    Serial.println("Sent to client:" + content);
+
+
     // When the client requests the interval we interpret this as a notification
     // that all data has been received; therefore we just clear the data vector
     // so esp can start collection data again.
     //    dataVector.clear();
   }
-  
-  digitalWrite(LED_BUILTIN, LOW);
 }
 
 
@@ -399,14 +511,17 @@ void loop(void) {
 
 
   // Refresh maximum and minimum values
-  refreshValues();  
-//  Serial.println("test: " + String(maxAccel) + "," + String(GyroX) + "," + String(GyroY) + "," + String(GyroZ));
+  refreshValues();
+  //  Serial.println("test: " + String(maxAccel) + "," + String(GyroX) + "," + String(GyroY) + "," + String(GyroZ));
 
 
-  // If 'interval' time has elapsed
-  // - (calculate Gyro difference)
-  // - push the data pair to the vector
-  // - reset timer and vars
+  /*
+   * If 'interval' time has elapsed
+   * - (calculate Gyro difference)
+   * - push the data pair to the vector
+   * - reset timer and vars
+   */
+   
   if (millis() - startTime > interval) {
 
     if (maxAccel > thresholdAccel || GyroX > preGyroX + thresholdGyro || GyroX < preGyroX - thresholdGyro || GyroY > preGyroY + thresholdGyro || GyroY < preGyroY - thresholdGyro || GyroZ > preGyroZ + thresholdGyro || GyroZ < preGyroZ - thresholdGyro) {
@@ -429,11 +544,12 @@ void loop(void) {
 
 
   // Check button status
-  // Start server if the button is pressed (HIGH)
+  // Start server / wifi if the button is pressed (HIGH)
   buttonState = digitalRead(buttonPin);
   if (buttonState == HIGH) {
-    Serial.println("Button pressed");
-    
+    Serial.println("\nButton pressed");
+
+    // Blinking LED
     digitalWrite(LED_BUILTIN, LOW);
     delay(500);
     digitalWrite(LED_BUILTIN, HIGH);
@@ -441,49 +557,27 @@ void loop(void) {
     digitalWrite(LED_BUILTIN, LOW);
     delay(500);
     digitalWrite(LED_BUILTIN, HIGH);
-    
+
+    // Measure idle time
+    // later we send it to client so he knows the time gap
+    // between waking up and actually retrieving the data
+    btnStart = millis();
+
+
     // WiFi connection
-    Serial.print("Connecting to WiFi network " + String(ssid) + " ");
+    if (networkSetup(SECRET_SSID, SECRET_PASS) != 0) {
 
-    // Make WiFi client and request connection to network
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid, password);
+      if (FALLBACK_SECRET_SSID != "") {
 
-    // Wait for connection
-    while (WiFi.status() != WL_CONNECTED) { // run <- status
-      delay(500);
-      digitalWrite(LED_BUILTIN, LOW);
-      delay(500);
-      digitalWrite(LED_BUILTIN, HIGH);
-      Serial.print(".");
-      // Pressing the button will abort connection attempt
-      buttonState = digitalRead(buttonPin);
-      if (buttonState == HIGH) {
-        digitalWrite(LED_BUILTIN, HIGH);
-        Serial.println();
-        Serial.println("Button pressed, aborting attempt");
-        delay(1000);
-        return;
+        if (networkSetup(FALLBACK_SECRET_SSID, FALLBACK_SECRET_PASS) != 0) {
+          Serial.println();
+          Serial.println("[INFO] Connecting to fallback WiFi network " + String(FALLBACK_SECRET_SSID) + " ");
+          Serial.println("Error: Could not connect to fallback wifi. Aborting...");
+          return;
+        }
       }
     }
-    digitalWrite(LED_BUILTIN, LOW);
-    
-    Serial.println("");
-    Serial.println("Connected.");
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
 
-    // mDNS
-    // Start mDNS with name esp8266 -> addres esp8266.local
-    if (MDNS.begin("esp8266")) {
-      Serial.println("MDNS started");
-    }
-
-    // Server
-    Serial.print("Starting server: ");
-    server.on("/", handleRoot);
-    server.begin();
-    Serial.println("Ready.");
 
     // Keep server running until button is pressed again
     buttonState = digitalRead(buttonPin);
@@ -492,11 +586,9 @@ void loop(void) {
       MDNS.update();
       buttonState = digitalRead(buttonPin);
     }
-    
-    digitalWrite(LED_BUILTIN, HIGH);
-    
+
+
     Serial.println("Closing connection");
-    // todo: confirm this works:                                  
     server.close();
     server.stop();
     WiFi.mode(WIFI_OFF);
