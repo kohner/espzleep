@@ -36,6 +36,9 @@ If your sensor comes with seperate header pins I recommended you to solder them 
 #### Wiring Scheme:
 ![Alt text](./wiring-scheme.webp)
 
+#### Soldering Scheme:
+![Alt text](./soldering_scheme.svg)
+
 ### 3. Preparing your ESP8266
 Setup Arduino IDE with ESP8266 on your computer. You need to do this in order to compile and upload the code onto the ESP. Follow advice from these sites if you don't know how to do this:
 - https://www.arduino.cc/en/Guide
