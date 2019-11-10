@@ -34,7 +34,7 @@ If your sensor comes with seperate header pins I recommended you to solder them 
 ![Alt text](./breadboard-setup.webp)
 
 #### Wiring Scheme:
-![Alt text](./wiring-scheme.webp)
+![Alt text](./wiring-scheme.svg)
 
 #### Soldering Scheme:
 ![Alt text](./soldering-scheme.svg)
