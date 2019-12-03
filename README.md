@@ -27,14 +27,19 @@ We assume you are starting from scratch; only in posession of items mentioned in
 If your sensor comes with seperate header pins I recommended you to solder them onto the chip first (the ESP8266 usually ships with pre-soldered header pins). If you are just getting started with soldering you can find guidance on this task here: https://www.instructables.com/Solder-Arduino-Header-Pins-Easily/
 
 ### 2. Assembly and Wiring
+#### 2.0 Breadboard
 - Stick the sensor, button and ESP onto the breadboard similar to how it is shown in the first image
 - Attach the wires according to the scheme shown in the second image (the resistor is a 10k resistor)
 
-#### Breadboard Setup:
+##### Breadboard Setup:
 ![Alt text](./breadboard-setup.webp)
 
-#### Breadboard Wiring Scheme:
+##### Wiring Scheme:
 ![Alt text](./wiring-scheme.svg)
+
+#### 2.1 PCB Board
+##### PCP Board Setup:
+![Alt text](./pcb-setup.webp)
 
 #### Soldering Scheme:
 ![Alt text](./soldering-scheme.svg)
