@@ -32,17 +32,29 @@ If your sensor comes with seperate header pins I recommended you to solder them 
 - Attach the wires according to the scheme shown in the second image (the resistor is a 10k resistor)
 
 ##### Breadboard Setup:
-![Alt text](./breadboard-setup.webp)
+<p align="center">
+  <img src="./images/breadboard-setup.webp" width="700"/>
+  </a>
+</p>
 
 ##### Wiring Scheme:
-![Alt text](./wiring-scheme.svg)
+<p align="center">
+  <img src="./images/wiring-scheme.svg" height="500"/>
+  </a>
+</p>
 
 #### 2.1 PCB Board
 ##### PCP Board Setup:
-![Alt text](./pcb-setup.webp)
+<p align="center">
+  <img src="./images/pcb-setup.webp" width="700"/>
+  </a>
+</p>
 
 #### Soldering Scheme:
-![Alt text](./soldering-scheme.svg)
+<p align="center">
+  <img src="./images/soldering-scheme.svg" height="500"/>
+  </a>
+</p>
 
 ### 3. Preparing your ESP8266
 Setup Arduino IDE with ESP8266 on your computer. You need to do this in order to compile and upload the code onto the ESP. Follow advice from these sites if you don't know how to do this:
