@@ -34,26 +34,25 @@ If your sensor comes with seperate header pins I recommended you to solder them 
 ##### Breadboard Setup:
 <p align="center">
   <img src="./images/breadboard-setup.webp" width="700"/>
-  </a>
 </p>
 
 ##### Wiring Scheme:
 <p align="center">
   <img src="./images/wiring-scheme.svg" height="500"/>
-  </a>
 </p>
 
-#### 2.1 PCB Board
+#### 2.1 Alternatively: PCB Board
+- place the components on the board
+- carefully proceed with soldering according to the scheme
+
 ##### PCP Board Setup:
 <p align="center">
   <img src="./images/pcb-setup.webp" width="700"/>
-  </a>
 </p>
 
 #### Soldering Scheme:
 <p align="center">
   <img src="./images/soldering-scheme.svg" height="500"/>
-  </a>
 </p>
 
 ### 3. Preparing your ESP8266
