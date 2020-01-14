@@ -73,11 +73,9 @@ The ESP will start gathering data as soon as it is connected to a power source. 
 ### 5. Analyze!
 Using the analyze_data.pyt script we can perform automated analysis of our sleep-data. The results will be displayed in a graph.
 
-From the sensor data we can get an approximate view on our sleepcycles.
+From the sensor data we can get an approximate view on our sleepcycles:
 
-![Alt text](./sleep-activity1.svg)
-Sample motion data:
-![Alt text](./sample1.svg)
+![Alt text](./images/example.svg)
 
 ## Retrieve and Analyze Scripts
 ```script.py <filename>```
