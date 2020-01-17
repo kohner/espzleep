@@ -18,7 +18,7 @@ ESP8266WebServer server(80);
 // Try to connect to fallback wifi when
 // we could not establish a connection
 // after this amount of time (miliseconds)
-int wifiConnectionTimeout = 20000;
+int wifiConnectionTimeout = 0;
 
 
 // Configuration
@@ -31,7 +31,7 @@ int wifiConnectionTimeout = 20000;
 // Keep in mind that lowering this value may cause problems when running
 // for a longer period of time as the memory on the ESP is very limited.
 // (miliseconds)
-const int interval = 60000;
+const int interval = 5000;
 
 // Values exceeding the threshold will be appended to the data vector.
 // All other data will be discarded.
@@ -363,7 +363,7 @@ int networkSetup(String ssid, String password) {
 
     // Check if we exceed the timeout
 
-    if (millis() - idleStart > wifiConnectionTimeout) {
+    if (wifiConnectionTimeout != 0 && millis() - idleStart > wifiConnectionTimeout) {
       return -1; // Timeout reached
     }
 
