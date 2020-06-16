@@ -1,5 +1,5 @@
 # ESP8266-server-GY-521-MPU-6050
-### Fetch server data from a Linux machine:
+### Fetch sensor data from a Linux machine:
 ```console
 while true; do
 curl esp.ip.here >> out.csv
