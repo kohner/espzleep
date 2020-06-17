@@ -12,7 +12,7 @@ done
 -1.4580, -1.6106, -0.5496, 29.0947, 2060
 ```
 
-![Alt text](./movement-sample1.svg)
+![Alt text](./sample1.svg)
 
 ![Alt text](./temp-sample1.svg)
 
