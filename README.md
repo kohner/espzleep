@@ -23,7 +23,5 @@ done
  - D2 - SDA
  - power sensor with 3v from board
 
-### Measure sleep activity
-
-Sleep cycles
+### Sleep cycles
 ![Alt text](./sleep-activity1.svg)
