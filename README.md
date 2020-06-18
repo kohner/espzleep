@@ -5,7 +5,7 @@ while true; do
 curl esp.ip.here >> out.csv
 done
 ```
-See [esp-init.zsh](#launch-script) for an example
+More info in [esp-init.bash](#init-script), this is some example CSV output
 ```console
 -1.6870, -1.6183, -0.4351, 29.0947, 2059
 -1.7175, -1.4122, -0.5496, 29.0476, 2059
@@ -27,14 +27,20 @@ See [esp-init.zsh](#launch-script) for an example
 ### Movement indicates sleep cycles
 ![Alt text](./sleep-activity1.svg)
 
-### Launch script
-init-esp.zsh is a ZSH script, bash won't run it (fails at read -k1, bash equivalent would be read -n 1).
-It will
- - connect to the ESP AP
+### Init script
+Meant to be run before going to bed with ESP :)  
+It will  
+ - connect to the ESP AP (via networkmanager, nmcli)
  - test connection to the IP provided
- - start background loop
+ - start background loop (curl fetches data)
  - quit when q is entered, everything else is ignored
-You need to make the following changes:
+ - => Don't quit with CTRL-C, the loop will keep running and you have to kill it manually. Entering q does this for you.
+ 
+Consider making the following changes
  - SSID of ESP access point
  - password of ESP access point
  - private IP address of ESP
+ - SSID of home wifi (reconnect before quitting)
+ - (filename)
+   
+This script is meant to serve as guidance for you to create your own.
