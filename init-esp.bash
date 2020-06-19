@@ -1,14 +1,22 @@
 #!/usr/bin/env bash
 
 file=$(date +"slept-with-esp-on-%Y-%m-%d~%H:%M:%S.csv")
-origSSID="MyHomeWlan" # set to "" in order to disable reconnecting
+origSSID="" # set to "" in order to disable reconnecting
+pw=""
+espAP=""
 
 # CONNECT
 counter=0
 while true; do
-    while [[ $(nmcli device wifi connect ESPap password thereisnospoon12) && $? -ne 0 ]]; do
+    while [[ $(nmcli device wifi connect $espAP password $pw) || $? -ne 0 ]]; do
         echo -e "\n [ ERR ] Could not connect\n"
         (( counter++ ))
+        if [[ $counter -eq 5 ]]; then
+            echo -e "\n [ ERR ] Tried 5 times, giving up\n"
+            exit 1
+        fi
+        echo sudo systemctl-restart NetworkManager:
+        sudo systemctl-restart NetworkManager
     done
     echo -e "\n [ OK ] Succesfully connected\n"
     curl 192.168.4.1        
@@ -19,7 +27,8 @@ while true; do
         echo -e "\n [ ERR ] Tried 5 times, giving up\n"
         exit 1
     fi
-    echo "\n [ ERR ] Connection to ESP AP present but curl failed, wrong IP?\n"
+    echo -e "\n [ ERR ] Connection to ESP AP present but curl failed, wrong IP?\n"
+    (( counter++ ))
 done
 
 # FETCH
