@@ -1,4 +1,30 @@
-# ESP8266-server-GY-521-MPU-6050
+# ESP Zzzzleep 😴
+
+### Bill of Materials
+- ESP8266 (microcontroller)
+- GY-521 MPU-6050 (accelerometer / gyroscope sensor)
+- breadboard and wires
+- power supply or powerbank for independant operation
+- soldering iron for preparation of the sensor module
+
+### Complete Instructions
+We assume you are starting from scratch only in posession of the mentioned items.
+#### 1. Preparation
+If your sensor comes with seperate header pins it is recommended to solder them onto the chip (the ESP usually ships with preattached header pins). If you are just getting started with soldering you can find guidance on this task here: https://www.instructables.com/Solder-Arduino-Header-Pins-Easily/
+### 2. Assembly and wiring
+- Stick the sensor and the ESP onto the breadboard similar to how it is shown in the picture.
+![Alt text](./esp-with-sensor.jpg)
+- Attach the wires according to this scheme:
+![Alt text](./ESP8266-wiring.png)
+### 3. Preparing the ESP
+Setup Arduino IDE with ESP8266 on your computer. You need to do this in order to compile and upload the code onto the ESP. Follow advice from these sites if you don't know how to do this:
+- https://www.arduino.cc/en/Guide
+- https://www.instructables.com/Setting-Up-the-Arduino-IDE-to-Program-ESP8266
+
+Copy and paste the code from esp.ino into Arduino IDE and hit upload - the ESP needs to be attached via USB Cable :)
+
+[todo]
+
 ### Fetch data from linux machine
 ```bash
 while true
