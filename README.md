@@ -28,7 +28,7 @@ Setup Arduino IDE with ESP8266 on your computer. You need to do this in order to
 - https://www.arduino.cc/en/Guide
 - https://www.instructables.com/Setting-Up-the-Arduino-IDE-to-Program-ESP8266
 
-When your Arduino IDE is ready to upload to ESP8266 copy and paste the code from esp.ino into Arduino IDE and hit upload - the ESP needs to be attached via USB Cable :)
+When your Arduino IDE is ready to upload to ESP8266 copy and paste the code from esp.ino into Arduino IDE and hit upload. Make sure you choose the appropriate board and USB port.
 
 [todo]
 
