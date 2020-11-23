@@ -8,7 +8,7 @@
 - soldering iron for preparation of the sensor module
 
 ### Complete Instructions
-We assume you are starting from scratch only in posession of the mentioned items.
+We assume you are starting from scratch; only in posession of items mentioned in the BoM.
 #### 1. Preparation
 If your sensor comes with seperate header pins it is recommended to solder them onto the chip (the ESP usually ships with preattached header pins). If you are just getting started with soldering you can find guidance on this task here: https://www.instructables.com/Solder-Arduino-Header-Pins-Easily/
 ### 2. Assembly and wiring
