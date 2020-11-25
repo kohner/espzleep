@@ -37,21 +37,3 @@ Start the server and you should see requests coming in after a few seconds.
 
 ### Movement indicates sleep cycles
 ![Alt text](./sleep-activity1.svg)
-
-### Init script
-Meant to be run before going to bed with ESP :)  
-It will  
- - connect to the ESP AP (via networkmanager, nmcli)
- - test connection to the IP provided
- - start background loop (curl fetches data)
- - quit when q is entered, everything else is ignored
- - => Don't quit with CTRL-C, the loop will keep running and you have to kill it manually. Entering q does this for you.
- 
-Consider making the following changes
- - SSID of ESP access point
- - password of ESP access point
- - private IP address of ESP
- - SSID of home wifi (reconnect before quitting)
- - (filename)
-   
-This script is meant to serve as guidance for you to create your own.
