@@ -9,6 +9,10 @@ In this project movement data is collected via Gyrometer Sensor during sleep.
 - power supply or powerbank for independant operation
 - soldering iron for preparation of the sensor module
 
+- **Sostware:**
+  - Arduino IDE: https://www.arduino.cc/en/software
+  - IOT2TANGLE Streams HTTP Gateway: https://github.com/iot2tangle/Streams-http-gateway
+
 ## Complete Setup Instructions
 We assume you are starting from scratch; only in posession of items mentioned in the BoM.
 
