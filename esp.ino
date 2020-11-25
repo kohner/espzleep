@@ -15,11 +15,11 @@
 // Network Communication Vars / Prototypes
 
 
-const char* ssid = "WLAN-X566YB";
-const char* password = "WirGehenImSommerEisEssen";
+const char* ssid = "****"; // edit
+const char* password = "****"; // edit
 
-const char* host = "192.168.2.113";
-const int httpPort = 8080;
+const char* host = "0.0.0.0"; // edit
+const int httpPort = 8080; // (optional)
 
 String craftRequestContent();
 
