@@ -48,5 +48,10 @@ The channel id will be sent as a response so it will appear in the terminal wher
 
 Secondly go to https://explorer.iot2tangle.io and enter the channel address.
 
+#### 5. Analyze!
+Analyze the data using Spreadsheets or another method. For example I'm currently working on a python script to visualize the collected data.
+
+Information about your sleep cycles can provide valuable insights. You can find out for example different parameters which can influence your sleep quality or your long-term sleep habits.
+
 ### Movement / Gyro data indicates sleep cycles
 ![Alt text](./sleep-activity1.svg)
