@@ -35,5 +35,12 @@ Install the Streams-HTTP-gateway available on https://github.com/iot2tangle/Stre
 
 Start the server and you should see requests coming in after a few seconds.
 
+#### 5. View online
+Firstly get your channel id by sending a specific GET request to your server:
+```curl --location --request GET '127.0.0.1:8080/current_channel' --header 'Content-Type: application/json' --data-raw '{ "device": "DEVICE_ID_1" }'```
+You can run this command as it is from the server itself or adjust the server ip address (127.0.0.1) and run it from another machine. Port 8080 is the default port used by the Streams-HTTP-gateway. The channel address will be sent as a response so it will appear in the terminal where curl was run.
+
+Secondly go to https://explorer.iot2tangle.io and enter the channel address.
+
 ### Movement indicates sleep cycles
 ![Alt text](./sleep-activity1.svg)
