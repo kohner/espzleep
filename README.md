@@ -1,13 +1,13 @@
 # ESP Zzzzleep 😴
 
-## Bill of Materials
+## Bill of Materials / Things You'll Need
 - ESP8266 (microcontroller)
 - GY-521 MPU-6050 (accelerometer / gyroscope sensor)
 - breadboard and wires
 - power supply or powerbank for independant operation
 - soldering iron for preparation of the sensor module
 
-## Complete Instructions
+## Complete Setup Instructions
 We assume you are starting from scratch; only in posession of items mentioned in the BoM.
 
 #### 1. Preparation
@@ -23,7 +23,7 @@ If your sensor comes with seperate header pins it is recommended to solder them 
 ##### Wiring Scheme:
 ![Alt text](./ESP8266-wiring.png)
 
-#### 3. Preparing your ESP
+#### 3. Preparing your ESP8266
 Setup Arduino IDE with ESP8266 on your computer. You need to do this in order to compile and upload the code onto the ESP. Follow advice from these sites if you don't know how to do this:
 - https://www.arduino.cc/en/Guide
 - https://www.instructables.com/Setting-Up-the-Arduino-IDE-to-Program-ESP8266
