@@ -30,7 +30,7 @@ Setup Arduino IDE with ESP8266 on your computer. You need to do this in order to
 
 When your Arduino IDE is ready to upload to ESP8266 copy and paste the code from esp.ino into Arduino IDE and edit ssid, password and ip address (insert the ip address of the machine running the Streams-HTTP-Gateway) before hitting upload. Make sure you choose the appropriate board and USB port.
 
-### 4. Start Streams-HTTP-gateway
+#### 4. Start Streams-HTTP-gateway
 Install the Streams-HTTP-gateway available on https://github.com/iot2tangle/Streams-http-gateway
 
 Start the server and you should see requests coming in after a few seconds.
