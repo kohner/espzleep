@@ -1,26 +1,31 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
-#include <ESP8266WebServer.h>
-#include <ESP8266mDNS.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
+#include <ESP8266HTTPClient.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "Wire.h"
 
-#ifndef STASSID
-//#define STASSID ""
-//#define STAPSK  ""
-#endif
+#define NTP_OFFSET   60 * 60      // In seconds
+#define NTP_INTERVAL 60 * 1000    // In miliseconds
+#define NTP_ADDRESS  "europe.pool.ntp.org"
 
-const uint8_t MPU_addr = 0x68; // I2C address of the MPU-6050
 
-const float MPU_GYRO_250_SCALE = 131.0;
-const float MPU_GYRO_500_SCALE = 65.5;
-const float MPU_GYRO_1000_SCALE = 32.8;
-const float MPU_GYRO_2000_SCALE = 16.4;
-const float MPU_ACCL_2_SCALE = 16384.0;
-const float MPU_ACCL_4_SCALE = 8192.0;
-const float MPU_ACCL_8_SCALE = 4096.0;
-const float MPU_ACCL_16_SCALE = 2048.0;
+// Network Communication Vars / Prototypes
+
+
+const char* ssid = "****"; // edit
+const char* password = "****"; // edit
+
+const char* host = "0.0.0.0"; // edit
+const int httpPort = 8080; // (optional)
+
+String craftRequestContent();
+
+
+// Sensor Vars / Prototypes
+
 
 struct rawdata {
   int16_t AcX;
@@ -42,186 +47,38 @@ struct scaleddata {
   float GyZ;
 };
 
+const uint8_t MPU_addr = 0x68; // I2C address of the MPU-6050
+
+const float MPU_GYRO_250_SCALE = 131.0;
+const float MPU_GYRO_500_SCALE = 65.5;
+const float MPU_GYRO_1000_SCALE = 32.8;
+const float MPU_GYRO_2000_SCALE = 16.4;
+const float MPU_ACCL_2_SCALE = 16384.0;
+const float MPU_ACCL_4_SCALE = 8192.0;
+const float MPU_ACCL_8_SCALE = 4096.0;
+const float MPU_ACCL_16_SCALE = 2048.0;
+
 bool checkI2c(byte addr);
 void mpu6050Begin(byte addr);
-rawdata mpu6050Read(byte addr, bool Debug);
 void setMPU6050scales(byte addr, uint8_t Gyro, uint8_t Accl);
 void getMPU6050scales(byte addr, uint8_t &Gyro, uint8_t &Accl);
+rawdata mpu6050Read(byte addr, bool Debug);
 scaleddata convertRawToScaled(byte addr, rawdata data_in, bool Debug);
 
-const char* ssid = STASSID;
-const char* password = STAPSK;
 
-ESP8266WebServer server(80);
-
-const int led = 13;
-
-void handleRoot() {
-  scaleddata values;
-  rawdata next_sample;
-  setMPU6050scales(MPU_addr, 0b00000000, 0b00010000);
-  next_sample = mpu6050Read(MPU_addr, false);
-
-  float scale_value = 0.0;
-  byte Gyro, Accl;
-
-  getMPU6050scales(MPU_addr, Gyro, Accl);
-
-  switch (Gyro) {
-    case 0:
-      scale_value = MPU_GYRO_250_SCALE;
-      break;
-    case 1:
-      scale_value = MPU_GYRO_500_SCALE;
-      break;
-    case 2:
-      scale_value = MPU_GYRO_1000_SCALE;
-      break;
-    case 3:
-      scale_value = MPU_GYRO_2000_SCALE;
-      break;
-    default:
-      break;
-  }
-
-  values.GyX = (float) next_sample.GyX / scale_value;
-  values.GyY = (float) next_sample.GyY / scale_value;
-  values.GyZ = (float) next_sample.GyZ / scale_value;
-
-  scale_value = 0.0;
-  
-  switch (Accl) {
-    case 0:
-      scale_value = MPU_ACCL_2_SCALE;
-      break;
-    case 1:
-      scale_value = MPU_ACCL_4_SCALE;
-      break;
-    case 2:
-      scale_value = MPU_ACCL_8_SCALE;
-      break;
-    case 3:
-      scale_value = MPU_ACCL_16_SCALE;
-      break;
-    default:
-      break;
-  }
-  values.AcX = (float) next_sample.AcX / scale_value;
-  values.AcY = (float) next_sample.AcY / scale_value;
-  values.AcZ = (float) next_sample.AcZ / scale_value;
-
-  values.Tmp = (float) next_sample.Tmp / 340.0 + 36.53;
-  
-  char buff[9];
-  char str[] = "";
-  snprintf(buff, 8, "%f", values.GyX); // num to str
-  strncat(str, buff, 8);
-  strncat(str, ", ", 2);
-  snprintf(buff, 8, "%f", values.GyY); // num to str
-  strncat(str, buff, 8);
-  strncat(str, ", ", 2);
-  snprintf(buff, 8, "%f", values.GyZ); // num to str
-  strncat(str, buff, 8);
-  strncat(str, ", ", 2);
-  snprintf(buff, 8, "%f", values.Tmp); // num to str
-  strncat(str, buff, 8);
-  strncat(str, "\n", 2);
-  Serial.println(str);
-  const char* asd = str;
-  server.send(200, "text/plain", asd);
-}
-
-void handleNotFound() {
-  Serial.println("some error");
-  digitalWrite(led, 1);
-  String message = "File Not Found\n\n";
-  message += "URI: ";
-  message += server.uri();
-  message += "\nMethod: ";
-  message += (server.method() == HTTP_GET) ? "GET" : "POST";
-  message += "\nArguments: ";
-  message += server.args();
-  message += "\n";
-  for (uint8_t i = 0; i < server.args(); i++) {
-    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
-  }
-  server.send(404, "text/plain", message);
-  digitalWrite(led, 0);
-}
-
-void setup(void) {
-  Wire.begin();
-  Serial.begin(115200);
-
-  mpu6050Begin(MPU_addr);
-
-  pinMode(led, OUTPUT);
-  digitalWrite(led, 0);
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  Serial.println("");
-
-  // Wait for connection
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("");
-  Serial.print("Connected to ");
-  Serial.println(ssid);
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
-
-  if (MDNS.begin("esp8266")) {
-    Serial.println("MDNS responder started");
-  }
-
-  server.on("/", handleRoot);
-
-  server.on("/inline", []() {
-    server.send(200, "text/plain", "this works as well");
-  });
-
-  server.on("/gif", []() {
-    static const uint8_t gif[] PROGMEM = {
-      0x47, 0x49, 0x46, 0x38, 0x37, 0x61, 0x10, 0x00, 0x10, 0x00, 0x80, 0x01,
-      0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0x2c, 0x00, 0x00, 0x00, 0x00,
-      0x10, 0x00, 0x10, 0x00, 0x00, 0x02, 0x19, 0x8c, 0x8f, 0xa9, 0xcb, 0x9d,
-      0x00, 0x5f, 0x74, 0xb4, 0x56, 0xb0, 0xb0, 0xd2, 0xf2, 0x35, 0x1e, 0x4c,
-      0x0c, 0x24, 0x5a, 0xe6, 0x89, 0xa6, 0x4d, 0x01, 0x00, 0x3b
-    };
-    char gif_colored[sizeof(gif)];
-    memcpy_P(gif_colored, gif, sizeof(gif));
-    // Set the background to a random set of colors
-    gif_colored[16] = millis() % 256;
-    gif_colored[17] = millis() % 256;
-    gif_colored[18] = millis() % 256;
-    server.send(200, "image/gif", gif_colored, sizeof(gif_colored));
-  });
-
-  server.onNotFound(handleNotFound);
-
-  server.begin();
-  Serial.println("HTTP server started");
-}
-
-void loop(void) {
-  rawdata next_sample;
-  setMPU6050scales(MPU_addr, 0b00000000, 0b00010000);
-  next_sample = mpu6050Read(MPU_addr, false);
-  convertRawToScaled(MPU_addr, next_sample, false);
-
-  delay(100); // Wait 5 seconds and scan again
-  server.handleClient();
-  MDNS.update();
-}
+// Start time service
 
 
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", 3600, 60000);
 
+
+// MPU Sensor Functions
+
+
+// mpu6050Begin: This function initializes the MPU-6050 IMU Sensor.
+// It verifys the address is correct and wakes up the MPU.
 void mpu6050Begin(byte addr) {
-  // This function initializes the MPU-6050 IMU Sensor
-  // It verifys the address is correct and wakes up the
-  // MPU.
   if (checkI2c(addr)) {
     Wire.beginTransmission(MPU_addr);
     Wire.write(0x6B); // PWR_MGMT_1 register
@@ -232,10 +89,9 @@ void mpu6050Begin(byte addr) {
   }
 }
 
+// checkI2c: We are using the return value of the Write.endTransmisstion
+// to see if a device did acknowledge to the address.
 bool checkI2c(byte addr) {
-  // We are using the return value of
-  // the Write.endTransmisstion to see if
-  // a device did acknowledge to the address.
   Serial.println(" ");
   Wire.beginTransmission(addr);
 
@@ -253,12 +109,8 @@ bool checkI2c(byte addr) {
   }
 }
 
-
-
+// mpu6050Read: This function reads the raw 16-bit data values from the MPU-6050
 rawdata mpu6050Read(byte addr, bool Debug) {
-  // This function reads the raw 16-bit data values from
-  // the MPU-6050
-
   rawdata values;
 
   Wire.beginTransmission(addr);
@@ -272,7 +124,6 @@ rawdata mpu6050Read(byte addr, bool Debug) {
   values.GyX = Wire.read() << 8 | Wire.read(); // 0x43 (GYRO_XOUT_H) & 0x44 (GYRO_XOUT_L)
   values.GyY = Wire.read() << 8 | Wire.read(); // 0x45 (GYRO_YOUT_H) & 0x46 (GYRO_YOUT_L)
   values.GyZ = Wire.read() << 8 | Wire.read(); // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
-
 
   if (Debug) {
     Serial.print(" GyX = "); Serial.print(values.GyX);
@@ -304,15 +155,12 @@ void getMPU6050scales(byte addr, uint8_t &Gyro, uint8_t &Accl) {
   Accl = (Wire.read() & (bit(3) | bit(4))) >> 3;
 }
 
-
-
 scaleddata convertRawToScaled(byte addr, rawdata data_in, bool Debug) {
-
   scaleddata values;
   float scale_value = 0.0;
   byte Gyro, Accl;
 
-  getMPU6050scales(MPU_addr, Gyro, Accl);
+  getMPU6050scales(addr, Gyro, Accl);
 
   if (Debug) {
     Serial.print("Gyro Full-Scale = ");
@@ -388,7 +236,6 @@ scaleddata convertRawToScaled(byte addr, rawdata data_in, bool Debug) {
   values.AcZ = (float) data_in.AcZ / scale_value;
 
 
-
   values.Tmp = (float) data_in.Tmp / 340.0 + 36.53;
 
   if (Debug) {
@@ -402,4 +249,93 @@ scaleddata convertRawToScaled(byte addr, rawdata data_in, bool Debug) {
   }
 
   return values;
+}
+
+
+// Networking Functions
+
+// craftRequestContent: This function wraps data from the MPU sensor in IOT2Tangle JSON format
+// which can be sent to HTTP-Streams-Gateway inside an HTTP paket
+String craftRequestContent() {
+  scaleddata values;
+  rawdata next_sample;
+  scaleddata gyroValues;
+  
+  setMPU6050scales(MPU_addr, 0b00000000, 0b00010000);
+
+  next_sample = mpu6050Read(MPU_addr, false);
+  gyroValues = convertRawToScaled(MPU_addr, next_sample, false);
+
+  // Generate Timestamp
+  timeClient.update();
+  unsigned long timestamp = timeClient.getEpochTime();
+
+  // IOT2TANGLE JSON format, include gyro parameters
+  String content = "{ \"iot2tangle\": [ { \"sensor\": \"Gyroscope\", \"data\": [ { \"x\": \"" + String(gyroValues.GyX) + "\" }, { \"y\": \"" + String(gyroValues.GyY) + "\" }, { \"z\": \"" + String(gyroValues.GyZ) + "\" } ] }, { \"sensor\": \"Acoustic\", \"data\": [ { \"mp\": \"1\" } ] } ], \"device\": \"DEVICE_ID_1\", \"timestamp\": " + String(timestamp) + " }";
+
+  return content;
+}
+
+
+// Setup
+
+
+// setup: The setup includes initializations of networking and hardware interfaces
+void setup(void) {
+
+  // Initialize serial monitor and I2C communication with MPU
+  Serial.begin(115200);
+  Wire.begin();
+  mpu6050Begin(MPU_addr);
+
+  // Make WIFI client and request connection to network
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  Serial.println("");
+
+  // Wait for connection
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.print("Connected to ");
+  Serial.println(ssid);
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+
+// Loop
+
+
+// loop: The loop repeatedly sends data from MPU gyrometer to HTTP-Streams-Gateway from IOT2TANGLE
+void loop(void) {
+    
+  // Connect to IOT2TANGLE Streams-HTTP-Gateway
+  WiFiClient client;
+  if (!client.connect(host, httpPort)) {
+    Serial.println("Connection failed");
+    return;
+  }
+
+  // Craft and send request
+  String content = craftRequestContent();
+  String request = "POST /sensor_data HTTP/1.1\nHost: " + String(host) + ":" + httpPort + "\nAccept: */*\nContent-Type: application/json\nContent-Length: " + String(content.length()) + "\n\n" + content;
+  Serial.println("Requesting POST: ");
+  Serial.println(request);
+  client.println(request);
+  
+  // Example Request from Github page
+//  String data = "{ \"iot2tangle\": [ { \"sensor\": \"Gyroscope\", \"data\": [ { \"x\": \"4514\" }, { \"y\": \"244\" }, { \"z\": \"-1830\" } ] }, { \"sensor\": \"Acoustic\", \"data\": [ { \"mp\": \"1\" } ] } ], \"device\": \"DEVICE_ID_1\", \"timestamp\": 1558511111 }";
+//  Serial.println("Requesting POST: ");
+//  String request = "POST /sensor_data HTTP/1.1\nHost: " + String(host) + ":8080\nAccept: */*\nContent-Type: application/json\nContent-Length: " + String(data.length()) + "\n\n" + String(data);
+//  client.println(request);
+//  Serial.println(request);
+  
+  delay(3000); // Streams-HTTP-Gateway is not fast enough for 'real-time' updates
+  if (client.connected()) {
+  }
+  Serial.println();
+  Serial.println("Closing connection");
 }
