@@ -1,5 +1,7 @@
 # ESP Zzzzleep 😴
 
+In this project movement data is collected via Gyrometer Sensor during sleep.
+
 ## Bill of Materials / Things You'll Need
 - ESP8266 (microcontroller)
 - GY-521 MPU-6050 (accelerometer / gyroscope sensor)
