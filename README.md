@@ -18,7 +18,7 @@ In this project movement data is collected using a Gyrometer Sensor during sleep
 We assume you are starting from scratch; only in posession of items mentioned in the BoM.
 
 #### 1. Preparation
-If your sensor comes with seperate header pins it is recommended to solder them onto the chip first (the ESP usually ships with presoldered header pins). If you are just getting started with soldering you can find guidance on this task here: https://www.instructables.com/Solder-Arduino-Header-Pins-Easily/
+If your sensor comes with seperate header pins I recommended you to solder them onto the chip first (the ESP8266 usually ships with pre-soldered header pins). If you are just getting started with soldering you can find guidance on this task here: https://www.instructables.com/Solder-Arduino-Header-Pins-Easily/
 
 #### 2. Assembly and Wiring
 - Stick the sensor and the ESP onto the breadboard similar to how it is shown in the first image
