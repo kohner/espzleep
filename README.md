@@ -1,10 +1,10 @@
 # ESP Zzzzleep 😴
 
-In this project movement data is collected using a Gyrometer Sensor.
+In this project, we record motion data during sleep to analyze our sleep habits.
 
-The setup on this page is meant to be active sleep hours in order to collect sleep-data. Analyzis of this data provides valuable insights into your sleep-activity.
+The setup on this page is designed to be active during sleep hours to collect sleep data. Analysis of this data provides valuable insight into your sleep activity.
 
-For example: Long term data collection reveals sleep habits and may help you find out important facts about you personal sleep - such as relations between wakeup time and sleep quality, sleep quality of naps vs. sleep quality in the night etc.
+For example: Long term data collection reveals sleep habits and can help you find out important facts about your personal sleep - such as the relationship between wake-up time and sleep quality, sleep quality of naps vs. sleep quality at night, etc.
 
 
 ## Bill of Materials / Things You'll Need
@@ -74,6 +74,7 @@ The data sent to any device is in CSV format which allows for easy visualization
 Information about your sleep cycles can provide valuable insights. You can find out for example different parameters which influence your sleep quality or learn about your long-term sleep habits.
 
 ## Movement / Gyro data indicates sleep cycles
-Example visualization:
-
+Data during sleep:
 ![Alt text](./sleep-activity1.svg)
+Sample motion data:
+![Alt text](./sample1.svg)
