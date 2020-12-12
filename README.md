@@ -1,6 +1,11 @@
 # ESP Zzzzleep 😴
 
-In this project movement data is collected using a Gyrometer Sensor during sleep.
+In this project movement data is collected using a Gyrometer Sensor.
+
+The setup on this page is meant to be active sleep hours in order to collect sleep-data. Analyzis of this data provides valuable insights into your sleep-activity.
+
+For example: Long term data collection reveals sleep habits and may help you find out important facts about you personal sleep - such as relations between wakeup time and sleep quality, sleep quality of naps vs. sleep quality in the night etc.
+
 
 ## Bill of Materials / Things You'll Need
 - ESP8266 (microcontroller)
