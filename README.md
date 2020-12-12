@@ -35,32 +35,40 @@ Setup Arduino IDE with ESP8266 on your computer. You need to do this in order to
 - https://www.arduino.cc/en/Guide
 - https://www.instructables.com/Setting-Up-the-Arduino-IDE-to-Program-ESP8266
 
-When your Arduino IDE is ready to upload to ESP8266 copy and paste the code from esp.ino into Arduino IDE and edit ssid, password and ip address (insert the ip address of the machine running the Streams-HTTP-Gateway) before hitting upload. Make sure you choose the appropriate board and USB port.
+When your Arduino IDE is ready to upload to ESP8266 copy and paste the code from esp.ino into Arduino IDE and edit
+- ssid
+- password
+- wifi/serial (true or false, depending on how you want the ESP to communicate with your device - see step 4)
+before hitting upload. As allways make sure to choose the appropriate board and USB port.
 
-#### 4. Start Streams-HTTP-gateway
-Install the Streams-HTTP-gateway available on https://github.com/iot2tangle/Streams-http-gateway
+Your ESP should connect to the WiFi network you specified in the source code.
 
-It is necessary that you follow the instructions given on the Github page ie. install Rust, build dependencies etc. then run ```cargo run --release``` inside the project directory.
+#### 4. Fetch the data
+Format: ```timestamp,X-Axis,Y-Axis,Z-Axis``` for example: ```161607797332,-1.70,-1.57,-0.59```
+##### Via WiFi
+If you have a device running in the same network as your ESP you can use it to fetch data from the ESP. In order to use the python script proviede follow these steps:
 
-Start the server and you should see requests coming in after a few seconds.
+1.) Make sure WiFi communication is enabled in the source code (esp.ino, wifi = true). Reupload it to the ESP if necessary.
 
-#### 5. View online
-Firstly get your channel id by sending a specific GET request to your server:
-```curl --location --request GET '127.0.0.1:8080/current_channel' --header 'Content-Type: application/json' --data-raw '{ "device": "DEVICE_ID_1" }'```
+2.) In Arduino IDE open Serial Monitor (Baud Rate: 115200 baud) to receive data from ESP. Plug the power cable in and wait until the ESP prints its IP address.
 
-You can run this command as it is from the server itself or adjust the server ip address (127.0.0.1) and run it from another machine.
+3.) Once you have the IP address you can power the ESP via alternative sources for ex. a powerbank. You only need to read the IP address once - usually :).
 
-Port 8080 is the default port used by the Streams-HTTP-gateway.
+5.) When you are ready start the python script with the correct IP set in the code; ESP should be running. Both devices (ESP and your computer) need to be in the same WiFi network. If everything is working you should see data being printed to the terminal. Everything will be saved to a file as well.
 
-The channel id will be sent as a response so it will appear in the terminal where curl was run.
+6.) Leave it running as long as you want! Any data received will be saved to a file.
 
 
-Secondly go to https://explorer.iot2tangle.io and enter the channel address.
+#### Via Serial
+Read Serial Ouput via ```tail -f /dev/ttyUSB0``` where /dev/ttyUSB0 has to be replaced with the appropriate USB port file. Pipe it to a file like so: ```tail -f /dev/tty/USB0 > test-esp```.
+
 
 #### 5. Analyze!
-Analyze the data using Spreadsheets or another method. For example I'm currently working on a python script to visualize the collected data.
+The data sent to any device is in CSV format which allows for easy visualization via Spreadsheets. For automatic detection of sleep cycles and analysis of other features of your sleep a second python script will be provided in the future.
 
-Information about your sleep cycles can provide valuable insights. You can find out for example different parameters which can influence your sleep quality or your long-term sleep habits.
+Information about your sleep cycles can provide valuable insights. You can find out for example different parameters which influence your sleep quality or learn about your long-term sleep habits.
 
 ### Movement / Gyro data indicates sleep cycles
+Example visualization:
+
 ![Alt text](./sleep-activity1.svg)
