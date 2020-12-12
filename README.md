@@ -59,7 +59,7 @@ If you have a device running in the same network as your ESP you can use it to f
 
 3.) Once you have the IP address you can power the ESP via alternative sources for ex. a powerbank. You only need to read the IP address once - usually :).
 
-5.) When you are ready start the python script with the correct IP set in the code; ESP should be running. Both devices (ESP and your computer) need to be in the same WiFi network. If everything is working you should see data being printed to the terminal. Everything will be saved to a file as well.
+5.) When you are ready start the python script with the correct IP set in the code (make sure you have the python-requests library installed); ESP should be running. Both devices (ESP and your computer) need to be in the same WiFi network. If everything is working you should see data being printed to the terminal. Everything will be saved to a file as well.
 
 6.) Leave it running as long as you want! Any data received will be saved to a file.
 
