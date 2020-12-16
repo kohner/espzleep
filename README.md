@@ -40,37 +40,12 @@ Setup Arduino IDE with ESP8266 on your computer. You need to do this in order to
 - https://www.arduino.cc/en/Guide
 - https://www.instructables.com/Setting-Up-the-Arduino-IDE-to-Program-ESP8266
 
-When your Arduino IDE is ready to upload to ESP8266 copy and paste the code from esp.ino into Arduino IDE and edit
-- ssid
-- password
-- wifi/serial (true or false, depending on how you want the ESP to communicate with your device - see step 4)
-before hitting upload. As allways make sure to choose the appropriate board and USB port.
-
-Your ESP should connect to the WiFi network you specified in the source code.
+Clone the repository and open the files in Arduino IDE. Change your SSID and password in the seperade arduino_secrets.h file. Maybe you want to adjust the configuration in the source code as well. When you are read hit upload.
 
 ### 4. Fetch the data
-Format: ```timestamp,X-Axis,Y-Axis,Z-Axis``` for example: ```161607797332,-1.70,-1.57,-0.59```
-#### Via WiFi
-If you have a device running in the same network as your ESP you can use it to fetch data from the ESP. In order to use the python script proviede follow these steps:
-
-1.) Make sure WiFi communication is enabled in the source code (esp.ino, wifi = true). Reupload it to the ESP if necessary.
-
-2.) In Arduino IDE open Serial Monitor (Baud Rate: 115200 baud) to receive data from ESP. Plug the power cable in and wait until the ESP prints its IP address.
-
-3.) Once you have the IP address you can power the ESP via alternative sources for ex. a powerbank. You only need to read the IP address once - usually :).
-
-5.) When you are ready start the python script (espzleep.py) with the correct IP set in the code (make sure you have the python-requests library installed); ESP should be running. Both devices (ESP and your computer) need to be in the same WiFi network. If everything is working you should see data being printed to the terminal. Everything will be saved to a file as well.
-
-6.) Leave it running as long as you want! Any data received will be saved to a file.
-
-
-### Via Serial
-Read Serial Ouput via ```tail -f /dev/ttyUSB0``` where /dev/ttyUSB0 has to be replaced with the appropriate USB port file. Pipe it to a file like so: ```tail -f /dev/tty/USB0 > test-esp```.
-
+The ESP will start gathering data and send it back via WiFi/HTTP (and serial connection) when you press the button. In order to work with the data you must have a server receive it. This will be provided in near future.
 
 ### 5. Analyze!
-The data sent to any device is in CSV format which allows for easy visualization via Spreadsheets. For automatic detection of sleep cycles and analysis of other features of your sleep a second python script will be provided in the future.
-
 Information about your sleep cycles can provide valuable insights. You can find out for example different parameters which influence your sleep quality or learn about your long-term sleep habits.
 
 ## Movement / Gyro data indicates sleep cycles
