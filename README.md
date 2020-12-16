@@ -40,7 +40,7 @@ Setup Arduino IDE with ESP8266 on your computer. You need to do this in order to
 - https://www.arduino.cc/en/Guide
 - https://www.instructables.com/Setting-Up-the-Arduino-IDE-to-Program-ESP8266
 
-Clone the repository and open the files in Arduino IDE. Change your SSID and password in the seperade arduino_secrets.h file. Maybe you want to adjust the configuration in the source code as well. When you are read hit upload.
+Clone the repository and open esp.ino in the Arduino IDE. Change your SSID and password in the seperade arduino_secrets.h file. Maybe you want to adjust the configuration in the source code as well. When you are read hit upload.
 
 ### 4. Fetch the data
 The ESP will start gathering data and send it back via WiFi/HTTP (and serial connection) when you press the button. In order to work with the data you must have a server receive it. This will be provided in near future.
