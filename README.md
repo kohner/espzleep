@@ -30,10 +30,10 @@ If your sensor comes with seperate header pins I recommended you to solder them 
 - Attach the wires according to the scheme shown in the second image
 
 #### Breadboard Setup:
-![Alt text](./esp-with-sensor.webp)
+![Alt text](./breadboard-setup.webp)
 
 #### Wiring Scheme:
-![Alt text](./ESP8266-wiring.png)
+![Alt text](./wiring-scheme.webp)
 
 ### 3. Preparing your ESP8266
 Setup Arduino IDE with ESP8266 on your computer. You need to do this in order to compile and upload the code onto the ESP. Follow advice from these sites if you don't know how to do this:
