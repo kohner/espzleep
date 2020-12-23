@@ -3,7 +3,8 @@
 #include <stdlib.h>
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
-#include <ESP8266HTTPClient.h>
+#include <ESP8266WebServer.h>
+#include <ESP8266mDNS.h>
 #include "arduino_secrets.h"
 
 
@@ -16,41 +17,37 @@
 // Define your SSID and password in the seperate file arduino_secrets.h
 const char* ssid = SECRET_SSID;
 const char* password = SECRET_PASS;
-const char* host = "192.168.12.1";
-const int httpPort = 80;
-HTTPClient http;
-const bool wifi = false; // enable or disable wifi communication
-void sendIt();
+
+ESP8266WebServer server(80);
 
 
 // Configuration
 
 
 // The interval controls how much time the ESP spends collecting data
-// before sending it to the server. Initial value is 60000 (1 minute).
+// before sending it to the server. Set to for example 60000 (1 minute).
 // Maximum is 72 minutes (see 'millis() rollover, I hope my calculation is correct').
 // When debugging you probably want to set this lower...
 // Keep in mind that lowering this value may cause problems when running
 // for a longer period of time as the memory on the ESP is very limited.
 const int interval = 60000;
 
-// Values above the threshold will be appended to the data vector.
+// Values exceeding the threshold will be appended to the data vector.
 // All other data will be discarded.
 // This limits the amount of memory taken up by the date avector.
 // Additionally during sleep most of the time values are below a certain value
 // and are of no interest so the threshold comes without loss of quality in
 // sleep analysis when set correctly.
 // To find out the optimal threshold value just set it to zero and make a test run...
-const float thresholdGyro = 25;
 const float thresholdAccel = 0.1;
+const float thresholdGyro = 1.5;
 
 
 // Button
 
 
-// Pin where button is connected
-// D0 is predefined - when you print it on Serial Monitor it has the value 16
 const int buttonPin = D0;
+int buttonState;
 
 
 // Loop Variables
@@ -59,22 +56,18 @@ const int buttonPin = D0;
 // All data collected will be stored in this vector.
 // Each tuples holds the maximum values of the
 // Gyro- and Accelerometer sensor for a specific time span.
-std::vector<std::tuple<int, float, float>> dataVector{};
+std::vector<std::tuple<int, float, float, float, float>> dataVector{};
 
 // Additional variables for the loop
-std::tuple<int, float, float> maxValues;
 int startTime;
 bool btn;
-int buttonState;
-float maxGyroX = 0;
-float maxGyroY = 0;
-float maxGyroZ = 0;
-float minGyroX = 9;
-float minGyroY = 9;
-float minGyroZ = 9;
+float GyroX = 0;
+float GyroY = 0;
+float GyroZ = 0;
+float preGyroX = 9;
+float preGyroY = 9;
+float preGyroZ = 9;
 float maxAccel = 0;
-float maxDiffGyro;
-void refreshValues();
 int skippedVals = 0;
 
 
@@ -299,69 +292,6 @@ scaleddata convertRawToScaled(byte addr, rawdata data_in, bool Debug) {
 }
 
 
-// Networking Function / Communication
-
-
-// sendIt: Send the data vector to the server (HTTP POST)
-void sendIt() {
-  String sendContent = "";
-  int ctr = 0;
-
-
-  // WiFi Connection
-
-
-
-  if (wifi) {
-    Serial.print("Connecting to WiFi network " + String(ssid) + " ");
-    
-    // Make WIFI client and request connection to network
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid, password);
-    Serial.println("");
-
-    // Wait for connection
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(500);
-      Serial.print(".");
-    }
-    Serial.println("");
-    Serial.println("Connected.");
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
-    Serial.println("Sending data: ");
-  }
-
-
-  // HTTP Connection / Requests
-
-
-
-  // Send in groups of 10 tuples
-  for (auto it = std::begin(dataVector); it != std::end(dataVector); ++it) {
-    ctr++;
-    sendContent = sendContent + String(std::get<0>(*it)) + "," + String(std::get<1>(*it)) + "," + String(std::get<2>(*it)) + ";";
-    if (ctr == 10) {
-      Serial.print(sendContent);
-      if (wifi) {
-        Serial.println();
-        Serial.print("Requesting POST: ");
-        http.begin(host, httpPort);
-        http.addHeader("Content-Type", "text/plain");
-        auto httpCode = http.POST(sendContent);
-        Serial.println(httpCode);
-      }
-      ctr = 0;
-      sendContent = "";
-    }
-  }
-
-  // Cleanup WiFi / HTTP
-  http.end();
-  WiFi.mode(WIFI_OFF);
-}
-
-
 // Data Collection
 
 
@@ -379,15 +309,61 @@ void refreshValues() {
   // Using fabsf because it is not import in which direction we move.
   maxAccel = max(maxAccel, max(fabsf(values.AcZ), max(fabsf(values.AcY), fabsf(values.AcZ))));
 
-  // Gyroscope: Get maximum / minimum motion from difference between max and min
-  // But first we get min and max, calculating difference outside the loop
-  // as it would be unnecessary to do this here.
-  maxGyroX = max(maxGyroX, values.GyX);
-  maxGyroY = max(maxGyroY, values.GyY);
-  maxGyroZ = max(maxGyroZ, values.GyZ);
-  minGyroX = min(minGyroX, values.GyX);
-  minGyroY = min(minGyroY, values.GyY);
-  minGyroZ = min(minGyroZ, values.GyZ);
+  // Gyroscope: If the values have changed the position of the sensor is change
+  // so we can conclude that the person has moved.
+  if (values.GyX != GyroX) {
+    GyroX = values.GyX;
+  }
+  if (values.GyY != GyroY) {
+    GyroY = values.GyY;
+  }
+  if (values.GyZ != GyroZ) {
+    GyroZ = values.GyZ;
+  }
+}
+
+
+// Networking / Server
+
+
+void handleRoot() {
+  digitalWrite(LED_BUILTIN, HIGH);
+
+  String content = "";
+  int elements;
+  int offset;
+  int vectorSize = dataVector.size();
+  std::tuple<int, float, float, float, float> element;
+
+  if (server.args() == 2) {
+    if (server.hasArg("elements") && server.hasArg("offset")) {
+      elements = server.arg("elements").toInt();
+      offset = server.arg("offset").toInt();
+      Serial.println("Received request: offset " + String(offset) + ", elements " + String(elements));
+      for (int i = offset; i < elements + offset; i++) {
+        if (i >= vectorSize) {
+          Serial.print("Vector size exceeded, ");
+          server.send(200, "text/plain", content + "stop");
+          Serial.println("Sent rest of vector + stop signal to client: " + content);
+          return;
+        }
+        element = dataVector.at(i);
+        content = content + String(std::get<0>(element)) + "," + String(std::get<1>(element)) + "," + String(std::get<2>(element)) + "," + String(std::get<3>(element)) + "," + String(std::get<4>(element)) + ";";
+        Serial.println("appended: " + String(std::get<0>(element)) + "," + String(std::get<1>(element)) + ";");
+      }
+    }
+    server.send(200, "text/plain", content);
+    Serial.println("Sent to client: " + content);
+  } else {
+    server.send(200, "text/plain", String(interval));
+    Serial.println("Sent to client:" + String(interval));
+    // When the client requests the interval we interpret this as a notification
+    // that all data has been received; therefore we just clear the data vector
+    // so esp can start collection data again.
+    //    dataVector.clear();
+  }
+  
+  digitalWrite(LED_BUILTIN, LOW);
 }
 
 
@@ -403,8 +379,10 @@ void setup(void) {
   Wire.begin();
   mpu6050Begin(MPU_addr);
 
-  // Initialize the button pin as an input
+  // Initialize the button and LED pins
   pinMode(buttonPin, INPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH);
 
   // Set timer
   startTime = millis();
@@ -417,51 +395,111 @@ void setup(void) {
 // After a set time span the maximum values it received during that time
 // will be appended to the data vector.
 void loop(void) {
-  delay(400);
+  delay(25);
+
 
   // Refresh maximum and minimum values
-  refreshValues();
+  refreshValues();  
+//  Serial.println("test: " + String(maxAccel) + "," + String(GyroX) + "," + String(GyroY) + "," + String(GyroZ));
 
-  // Check button status
-  // Start transmission of data if the button is pressed (HIGH)
-  buttonState = digitalRead(buttonPin);
-  if (buttonState == HIGH) {
-    // start data transmission of vector
-    sendIt();
-  }
 
   // If 'interval' time has elapsed
   // - (calculate Gyro difference)
   // - push the data pair to the vector
   // - reset timer and vars
   if (millis() - startTime > interval) {
-    // Gyroscope: Calculate the max difference
-    maxGyroX = maxGyroX - minGyroX;
-    maxGyroY = maxGyroY - minGyroY;
-    maxGyroZ = maxGyroZ - minGyroZ;
-    maxDiffGyro = max(max(maxGyroZ, maxGyroY), maxGyroX);
-    maxDiffGyro = 0;
 
-    if (maxAccel > thresholdAccel || maxDiffGyro > thresholdGyro) {
+    if (maxAccel > thresholdAccel || GyroX > preGyroX + thresholdGyro || GyroX < preGyroX - thresholdGyro || GyroY > preGyroY + thresholdGyro || GyroY < preGyroY - thresholdGyro || GyroZ > preGyroZ + thresholdGyro || GyroZ < preGyroZ - thresholdGyro) {
       // Make tuple and append to data vector along with number of skipped values
-      dataVector.push_back(std::make_tuple(skippedVals, maxAccel, maxDiffGyro));
-      Serial.println("Treshold exceeded! append: " + String(skippedVals) + "," + String(maxAccel) + "," + String(maxDiffGyro));
+      dataVector.push_back(std::make_tuple(skippedVals, maxAccel, GyroX, GyroY, GyroZ));
+      preGyroX = GyroX;
+      preGyroY = GyroY;
+      preGyroZ = GyroZ;
+      Serial.println("Treshold exceeded! append: " + String(skippedVals) + "," + String(maxAccel) + "," + String(GyroX) + "," + String(GyroY) + "," + String(GyroZ));
       skippedVals = 0;
     } else {
-      Serial.println("discarding: " + String(maxAccel) + "," + String(maxDiffGyro));
       skippedVals ++;
+      Serial.println("discarding: " + String(maxAccel) + "," + String(GyroX) + "," + String(GyroY) + "," + String(GyroZ));
     }
 
-    // Reset timer
+    // Reset timer / maxAccel
     startTime = millis();
-
-    // Reset vars
-    maxGyroX = 0;
-    maxGyroY = 0;
-    maxGyroZ = 0;
-    minGyroX = 9;
-    minGyroY = 9;
-    minGyroZ = 9;
     maxAccel = 0;
+  }
+
+
+  // Check button status
+  // Start server if the button is pressed (HIGH)
+  buttonState = digitalRead(buttonPin);
+  if (buttonState == HIGH) {
+    Serial.println("Button pressed");
+    
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(500);
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(500);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(500);
+    digitalWrite(LED_BUILTIN, HIGH);
+    
+    // WiFi connection
+    Serial.print("Connecting to WiFi network " + String(ssid) + " ");
+
+    // Make WiFi client and request connection to network
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(ssid, password);
+
+    // Wait for connection
+    while (WiFi.status() != WL_CONNECTED) { // run <- status
+      delay(500);
+      digitalWrite(LED_BUILTIN, LOW);
+      delay(500);
+      digitalWrite(LED_BUILTIN, HIGH);
+      Serial.print(".");
+      // Pressing the button will abort connection attempt
+      buttonState = digitalRead(buttonPin);
+      if (buttonState == HIGH) {
+        digitalWrite(LED_BUILTIN, HIGH);
+        Serial.println();
+        Serial.println("Button pressed, aborting attempt");
+        delay(1000);
+        return;
+      }
+    }
+    digitalWrite(LED_BUILTIN, LOW);
+    
+    Serial.println("");
+    Serial.println("Connected.");
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+
+    // mDNS
+    // Start mDNS with name esp8266 -> addres esp8266.local
+    if (MDNS.begin("esp8266")) {
+      Serial.println("MDNS started");
+    }
+
+    // Server
+    Serial.print("Starting server: ");
+    server.on("/", handleRoot);
+    server.begin();
+    Serial.println("Ready.");
+
+    // Keep server running until button is pressed again
+    buttonState = digitalRead(buttonPin);
+    while (buttonState == LOW) {
+      server.handleClient();
+      MDNS.update();
+      buttonState = digitalRead(buttonPin);
+    }
+    
+    digitalWrite(LED_BUILTIN, HIGH);
+    
+    Serial.println("Closing connection");
+    // todo: confirm this works:                                  
+    server.close();
+    server.stop();
+    WiFi.mode(WIFI_OFF);
+    delay(1000);
   }
 }
