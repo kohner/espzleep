@@ -178,7 +178,9 @@ def main():
 
     dataVector = f.read().splitlines()
     
-    interval = int(dataVector[-2])
+    interval = int(dataVector[-2].split("; ")[0])
+    timeSinceWakeup = int(dataVector[-2].split("; ")[1])
+    print(interval, timeSinceWakeup)
     timestamp = int(dataVector[-1])
     dataVector = dataVector[:-2]
 
@@ -213,7 +215,7 @@ def main():
         plt.legend(loc='upper left')
         plt.xlabel('Time')
         plt.ylabel('Movement')
-        plt.title("Sleep on xxx")
+        plt.title(F"Sleep on {date_object}")
 
         plt.show()
         exit()
@@ -258,7 +260,7 @@ def main():
         # Labels, title, legend
         plt.xlabel('Time')
         plt.ylabel('Depth of Sleep')
-        plt.title("Sleep on xxx")
+        plt.title(F"Sleep on {date_object}")
         plt.legend(loc='upper right')
         plt.legend()
 
@@ -273,6 +275,5 @@ main()
 add support for bulk analysis (directory)
 if only little data use minutes instead of hours
 hide y vals
-
 
 """
