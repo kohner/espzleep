@@ -5,6 +5,7 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import make_interp_spline, BSpline
+from datetime import datetime
 
 
 if len(sys.argv) == 1 or sys.argv[1] == "-h" or len(sys.argv) > 2:
@@ -165,8 +166,12 @@ def detectWakeup():
 
 
 def main():
+    filename = sys.argv[1]
+
+    date_object = datetime.strptime(filename, "SleepLog_%d-%m-%Y-%H-%M")
+    print("date_object =", date_object)
     try:
-        f = open(sys.argv[1])
+        f = open(filename)
     except:
         print("Could not open file")
         exit()
